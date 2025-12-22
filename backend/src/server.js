@@ -2,7 +2,7 @@ import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
 import { Webhook } from "svix";
-import User from "./models/User";
+import User from "./models/User.js";
 import mongoose from 'mongoose';
 const app = express();
 const MONGO_URI = process.env.MONGO_URI;
