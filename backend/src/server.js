@@ -22,9 +22,17 @@ const adminDistPath = path.join(__dirname, '../../admin/dist');
 app.use(express.static(adminDistPath));
 
 // 3. Xử lý Single Page Application (SPA) của React/Vite
-app.get('(.*)', (req, res) => {
+// ... bên trên giữ nguyên ...
+
+// Phục vụ file tĩnh
+app.use(express.static(adminDistPath));
+
+// Route cuối cùng để xử lý trang Admin (SPA)
+app.get('/:any*', (req, res) => {
     res.sendFile(path.join(adminDistPath, 'index.html'));
 });
+
+// ... bên dưới giữ nguyên ...
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
