@@ -28,7 +28,7 @@ app.use(express.static(adminDistPath));
 app.use(express.static(adminDistPath));
 
 // Route cuối cùng để xử lý trang Admin (SPA)
-app.get('/:any*', (req, res) => {
+app.get("/{*any}", (req, res) => {
     res.sendFile(path.join(adminDistPath, 'index.html'));
 });
 
