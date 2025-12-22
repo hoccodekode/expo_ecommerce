@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "node --watch src/server.js",
-     "start": "node src/server.js"
+    "start": "node src/server.js"
   },
   "keywords": [],
   "author": "",
@@ -13,6 +13,7 @@
   "type": "module",
   "dependencies": {
     "dotenv": "^17.2.3",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "svix": "^1.82.0"
   }
 }
