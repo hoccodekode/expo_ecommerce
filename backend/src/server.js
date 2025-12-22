@@ -1,30 +1,32 @@
 import express from 'express';
-const app = express()
+import path from 'path';
+import { fileURLToPath } from 'url';
 
+const app = express();
+
+// Thiết lập __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Middleware
+app.use(express.json());
+
+// 1. API Routes (Đặt lên trước)
 app.get('/api/health', (req, res) => {
-  res.send('Hello, World!')
-})  
-
- 
-
-const express = require('express');
-const path = require('path');
-
-
-// 1. Các route cho API của bạn (Giữ nguyên)
-app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok' });
+    res.json({ status: 'ok', message: 'Backend is running' });
 });
 
-// 2. Cấu hình phục vụ file tĩnh từ thư mục build của Admin
-// Giả sử thư mục admin nằm cùng cấp với backend
-const adminBuildPath = path.join(__dirname, '../admin/dist');
-app.use(express.static(adminBuildPath));
+// 2. Phục vụ file tĩnh từ Admin (Sửa đường dẫn cho đúng cấu trúc monorepo)
+// Cấu trúc: project/backend/src/server.js -> lùi 2 cấp để ra ngoài, rồi vào admin/dist
+const adminDistPath = path.join(__dirname, '../../admin/dist');
+app.use(express.static(adminDistPath));
 
-// 3. Với mọi request không phải API, trả về file index.html của Admin
+// 3. Xử lý Single Page Application (SPA) của React/Vite
 app.get('*', (req, res) => {
-    res.sendFile(path.join(adminBuildPath, 'index.html'));
+    res.sendFile(path.join(adminDistPath, 'index.html'));
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+});
