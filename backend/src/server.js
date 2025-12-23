@@ -2,8 +2,30 @@ import express from 'express';
 import { Webhook } from 'svix';
 import mongoose from 'mongoose';
 import User from './models/User.js'; // Đảm bảo có đuôi .js
+import Product from './models/Product.js';
 
 const app = express();
+
+// API lấy tất cả sản phẩm
+app.get('/api/products', async (req, res) => {
+  try {
+    const products = await Product.find();
+    res.status(200).json(products);
+  } catch (error) {
+    res.status(500).json({ message: "Lỗi khi lấy sản phẩm", error });
+  }
+});
+
+// API tạo sản phẩm mới (Để bạn test bằng Postman hoặc gửi dữ liệu mẫu)
+app.post('/api/products', async (req, res) => {
+  try {
+    const newProduct = new Product(req.body);
+    await newProduct.save();
+    res.status(201).json(newProduct);
+  } catch (error) {
+    res.status(400).json({ message: "Lỗi khi tạo sản phẩm", error });
+  }
+});
 
 // 1. Route Webhook phải ở TRÊN CÙNG và dùng express.raw
 app.post('/api/webhooks/clerk', express.raw({ type: 'application/json' }), async (req, res) => {
