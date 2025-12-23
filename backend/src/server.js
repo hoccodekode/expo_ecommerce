@@ -3,10 +3,16 @@ import { Webhook } from 'svix';
 import mongoose from 'mongoose';
 import User from './models/User.js'; // Đảm bảo có đuôi .js
 import Product from './models/Product.js';
-
+import cors from 'cors';
+import 'dotenv/config';
 const app = express();
 
-
+// Thêm dòng này TRƯỚC các route
+app.use(cors({
+  origin: '*', // Cho phép tất cả các nguồn truy cập (Chỉ dùng khi đang code)
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 // 1. Route Webhook phải ở TRÊN CÙNG và dùng express.raw
 app.post('/api/webhooks/clerk', express.raw({ type: 'application/json' }), async (req, res) => {
   try {
@@ -65,6 +71,13 @@ app.post('/api/products', async (req, res) => {
   } catch (error) {
     res.status(400).json({ message: "Lỗi khi tạo sản phẩm", error });
   }
+});
+app.get('/api/health', (req, res) => {
+  res.send('Hello from Express server!');
+});
+// Route cuối cùng để xử lý trang Admin (SPA)
+app.get("/{*any}", (req, res) => {
+  res.sendFile(path.join(adminDistPath, "index.html"));
 });
 
 // Kết nối Database
