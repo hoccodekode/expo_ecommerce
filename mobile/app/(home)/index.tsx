@@ -5,13 +5,18 @@ import { SignOutButton } from '@/app/components/SignOutButton'
 
 export default function Page() {
   const { user } = useUser()
-
+const fetchProducts = async () => {
+  const response = await fetch('https://expo-ecommerce-wrd1.onrender.com/api/products');
+  const data = await response.json();
+  console.log("Danh sách sản phẩm:", data);
+};
   return (
     <View>
       <SignedIn>
         <Text>Hello {user?.emailAddresses[0].emailAddress}</Text>
         <SignOutButton />
       </SignedIn>
+      
       <SignedOut>
         <Link href="/(auth)/sign-in">
           <Text>Sign in</Text>
