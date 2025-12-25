@@ -5,7 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import mongoose from 'mongoose';
 import cors from 'cors';
-
+import { upload } from './config/cloudinary.js';
 // Import Models
 import User from './models/User.js';
 import Product from './models/Product.js';
@@ -79,6 +79,22 @@ app.post('/api/products', async (req, res) => {
     res.status(201).json(newProduct);
   } catch (error) {
     res.status(400).json({ message: "Lỗi khi tạo sản phẩm", error });
+  }
+});
+// Route Upload ảnh
+app.post('/api/upload', upload.single('image'), (req, res) => {
+  console.log("--- Bắt đầu Upload ---");
+  console.log("File nhận được:", req.file); // Nếu dòng này hiện undefined => Lỗi do Multer/Admin gửi sai tên
+
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "Không nhận được file ảnh" });
+    }
+    console.log("Upload Cloudinary thành công, URL:", req.file.path);
+    res.status(200).json({ imageUrl: req.file.path });
+  } catch (error) {
+    console.error("Lỗi tại Route Upload:", error);
+    res.status(500).json({ error: error.message });
   }
 });
 
