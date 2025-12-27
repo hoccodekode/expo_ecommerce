@@ -18,13 +18,18 @@ const handleAddToCart = async () => {
     return;
   }
 
+  if (!user?.id) {
+    Alert.alert("Lỗi", "Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!");
+    return;
+  }
+
   setIsAdding(true);
   try {
-    const response = await fetch(`http://localhost:3000/api/cart/add`, {
+    const response = await fetch(`https://expo-ecommerce-wrd1.onrender.com/api/cart/add`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        clerkId: user?.id,
+        clerkId: user.id,
         productId: params.id,
         name: params.name,
         price: Number(params.price),
@@ -34,16 +39,33 @@ const handleAddToCart = async () => {
       }),
     });
 
-    // KIỂM TRA PHẢN HỒI TRƯỚC KHI PARSE
     const contentType = response.headers.get("content-type");
-    if (response.ok && contentType && contentType.includes("application/json")) {
-      Alert.alert("Thành công", "Đã thêm vào giỏ hàng!");
+    
+    if (response.ok) {
+      if (contentType && contentType.includes("application/json")) {
+        const data = await response.json();
+        Alert.alert("Thành công", "Đã thêm vào giỏ hàng!");
+      } else {
+        Alert.alert("Thành công", "Đã thêm vào giỏ hàng!");
+      }
     } else {
-      // Nếu không phải JSON, nghĩa là Server đang trả về lỗi HTML
-      throw new Error("Server đang bảo trì hoặc bị khóa (Render Suspended)");
+      // Parse error response từ server
+      let errorMessage = "Không thể thêm vào giỏ hàng";
+      try {
+        if (contentType && contentType.includes("application/json")) {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } else {
+          errorMessage = `Lỗi ${response.status}: ${response.statusText}`;
+        }
+      } catch (parseError) {
+        errorMessage = `Lỗi ${response.status}: ${response.statusText}`;
+      }
+      Alert.alert("Lỗi", errorMessage);
     }
   } catch (error: any) {
-    Alert.alert("Lỗi kết nối", error.message);
+    console.error("Lỗi khi thêm vào giỏ hàng:", error);
+    Alert.alert("Lỗi kết nối", error.message || "Không thể kết nối đến server. Vui lòng thử lại sau.");
   } finally {
     setIsAdding(false);
   }

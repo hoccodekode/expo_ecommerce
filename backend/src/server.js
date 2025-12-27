@@ -121,12 +121,30 @@ app.get('/api/users', async (req, res) => {
 app.post('/api/cart/add', async (req, res) => {
   const { clerkId, productId, name, price, image, size, quantity } = req.body;
 
+  // Validation
+  if (!clerkId) {
+    return res.status(400).json({ message: "Thiếu clerkId" });
+  }
+  if (!productId) {
+    return res.status(400).json({ message: "Thiếu productId" });
+  }
+  if (!name || !price || !image || !size) {
+    return res.status(400).json({ message: "Thiếu thông tin sản phẩm" });
+  }
+  if (!quantity || quantity < 1) {
+    return res.status(400).json({ message: "Số lượng không hợp lệ" });
+  }
+
   try {
     let cart = await Cart.findOne({ clerkId });
 
     if (cart) {
       // Nếu đã có giỏ hàng, kiểm tra xem sản phẩm (cùng size) đã tồn tại chưa
-      const itemIndex = cart.items.findIndex(p => p.productId == productId && p.size == size);
+      // Convert productId sang string để so sánh chính xác
+      const productIdStr = String(productId);
+      const itemIndex = cart.items.findIndex(
+        p => String(p.productId) === productIdStr && p.size === size
+      );
 
       if (itemIndex > -1) {
         // Nếu tồn tại rồi thì tăng số lượng
@@ -145,7 +163,8 @@ app.post('/api/cart/add', async (req, res) => {
     }
     res.status(201).json(cart);
   } catch (error) {
-    res.status(500).json({ message: "Lỗi khi thêm vào giỏ hàng", error });
+    console.error("Lỗi khi thêm vào giỏ hàng:", error);
+    res.status(500).json({ message: "Lỗi khi thêm vào giỏ hàng", error: error.message });
   }
 });
 
