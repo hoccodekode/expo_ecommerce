@@ -18,17 +18,7 @@ const productSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now },
 });
 
-// Middleware để tự động tính price từ originalPrice hoặc discountPrice
-productSchema.pre('save', function(next) {
-  // Nếu có discountPrice thì dùng discountPrice, không thì dùng originalPrice
-  if (this.discountPrice && this.discountPrice > 0) {
-    this.price = this.discountPrice;
-  } else {
-    this.price = this.originalPrice;
-  }
-  this.updatedAt = Date.now();
-  next();
-});
+// Không cần middleware, backend sẽ tự xử lý updatedAt
 
 const Product = mongoose.model('Product', productSchema);
 export default Product;

@@ -79,16 +79,57 @@ app.get('/api/products', async (req, res) => {
 // API tạo sản phẩm mới
 app.post('/api/products', async (req, res) => {
   try {
-    // Đảm bảo price được tính đúng
-    if (!req.body.price && req.body.originalPrice) {
+    console.log("📥 Nhận request tạo sản phẩm:", {
+      name: req.body.name,
+      hasImage: !!req.body.image,
+      imageLength: req.body.image ? req.body.image.length : 0,
+      imagePreview: req.body.image ? req.body.image.substring(0, 50) + "..." : "Không có"
+    });
+
+    // Validation: Kiểm tra các trường bắt buộc
+    if (!req.body.name) {
+      return res.status(400).json({ message: "Tên sản phẩm là bắt buộc" });
+    }
+    if (!req.body.image || req.body.image.trim() === "") {
+      return res.status(400).json({ message: "Ảnh sản phẩm là bắt buộc" });
+    }
+    if (!req.body.originalPrice) {
+      return res.status(400).json({ message: "Giá gốc là bắt buộc" });
+    }
+
+    // Đảm bảo price được tính đúng TRƯỚC KHI tạo Product
+    if (!req.body.price) {
       req.body.price = req.body.discountPrice || req.body.originalPrice;
     }
+    
+    // Đảm bảo price là số
+    req.body.price = Number(req.body.price);
+    req.body.originalPrice = Number(req.body.originalPrice);
+    if (req.body.discountPrice) {
+      req.body.discountPrice = Number(req.body.discountPrice);
+    }
+
+    console.log("💰 Giá sản phẩm:", {
+      originalPrice: req.body.originalPrice,
+      discountPrice: req.body.discountPrice,
+      finalPrice: req.body.price
+    });
+
+    // Đảm bảo updatedAt được set
+    req.body.updatedAt = Date.now();
+
     const newProduct = new Product(req.body);
     await newProduct.save();
+    
+    console.log("✅ Tạo sản phẩm thành công:", newProduct._id);
     res.status(201).json(newProduct);
   } catch (error) {
-    console.error("Lỗi khi tạo sản phẩm:", error);
-    res.status(400).json({ message: "Lỗi khi tạo sản phẩm", error: error.message });
+    console.error("❌ Lỗi khi tạo sản phẩm:", error);
+    res.status(400).json({ 
+      message: "Lỗi khi tạo sản phẩm", 
+      error: error.message,
+      details: error.errors 
+    });
   }
 });
 

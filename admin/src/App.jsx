@@ -169,7 +169,7 @@ useEffect(() => {
     e.preventDefault();
     setIsUploading(true);
     try {
-      let finalImageUrl = formData.image;
+      let finalImageUrl = formData.image || "";
       
       // Chỉ upload ảnh mới nếu có file mới
       if (imageFile) {
@@ -179,23 +179,57 @@ useEffect(() => {
           method: "POST",
           body: uploadData,
         });
+        
+        if (!res.ok) {
+          throw new Error("Lỗi khi upload ảnh");
+        }
+        
         const data = await res.json();
-        finalImageUrl = data.imageUrl;
+        // Backend trả về imageUrl hoặc path
+        finalImageUrl = data.imageUrl || data.path || "";
+        
+        if (!finalImageUrl) {
+          throw new Error("Không nhận được URL ảnh từ server");
+        }
+        
+        console.log("✅ Upload ảnh thành công:", finalImageUrl);
+      }
+
+      // Kiểm tra nếu không có ảnh (khi thêm mới)
+      if (!finalImageUrl && !isEditMode) {
+        alert("Vui lòng chọn ảnh sản phẩm!");
+        setIsUploading(false);
+        return;
+      }
+
+      // Đảm bảo có ảnh trước khi tạo sản phẩm
+      if (!finalImageUrl || finalImageUrl.trim() === "") {
+        alert("Vui lòng chọn ảnh sản phẩm!");
+        setIsUploading(false);
+        return;
       }
 
       // Xử lý các trường array
       const productToSave = {
-        ...formData,
-        image: finalImageUrl,
+        name: formData.name,
+        description: formData.description,
         originalPrice: Number(formData.originalPrice),
         discountPrice: formData.discountPrice ? Number(formData.discountPrice) : undefined,
         price: formData.discountPrice ? Number(formData.discountPrice) : Number(formData.originalPrice),
+        image: finalImageUrl, // Đảm bảo image được set đúng
+        category: formData.category,
         stock: Number(formData.stock),
+        brand: formData.brand || undefined,
         size: formData.size ? formData.size.split(",").map(s => s.trim()).filter(s => s) : [],
         color: formData.color ? formData.color.split(",").map(c => c.trim()).filter(c => c) : [],
         tags: formData.tags ? formData.tags.split(",").map(t => t.trim()).filter(t => t) : [],
-        isActive: formData.isActive,
+        isActive: formData.isActive !== undefined ? formData.isActive : true,
       };
+
+      console.log("📦 Dữ liệu sản phẩm sẽ gửi:", {
+        ...productToSave,
+        image: finalImageUrl.substring(0, 50) + "..."
+      });
 
       if (isEditMode && editingProduct) {
         // Cập nhật sản phẩm
