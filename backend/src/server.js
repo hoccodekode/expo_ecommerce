@@ -582,6 +582,27 @@ app.post('/api/orders', async (req, res) => {
   }
 });
 
+// Cập nhật trạng thái đơn hàng
+app.put('/api/orders/:id', async (req, res) => {
+  try {
+    const { status } = req.body;
+    const updatedOrder = await Order.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true }
+    );
+    
+    if (!updatedOrder) {
+      return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
+    }
+    
+    res.json(updatedOrder);
+  } catch (error) {
+    console.error("❌ Lỗi cập nhật đơn hàng:", error.message);
+    res.status(400).json({ message: "Lỗi cập nhật đơn hàng", error: error.message });
+  }
+});
+
 // Xóa đơn hàng
 app.delete('/api/orders/:id', async (req, res) => {
   try {

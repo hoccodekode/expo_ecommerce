@@ -16,6 +16,12 @@ export default function CartScreen() {
   const [checkingOut, setCheckingOut] = useState(false);
   const [address, setAddress] = useState('');
   const [showAddressInput, setShowAddressInput] = useState(false);
+  
+  // Payment and discount states
+  const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [discountCode, setDiscountCode] = useState('');
+  const [appliedDiscount, setAppliedDiscount] = useState<{code: string, amount: number, type: 'percent' | 'fixed'} | null>(null);
+  const [discountError, setDiscountError] = useState('');
 
   const fetchCart = async (forceRefresh = false) => {
     if (!user) return;
@@ -202,7 +208,10 @@ export default function CartScreen() {
           items: cart.items,
           totalAmount: totalPrice,
           address: address.trim(),
-          status: 'Chờ xử lý'
+          status: 'Chờ xử lý',
+          paymentMethod: paymentMethod,
+          discountCode: appliedDiscount?.code || null,
+          discountAmount: discountAmount
         }),
       });
 
@@ -287,9 +296,54 @@ export default function CartScreen() {
     }
   };
 
+  // Validate and apply discount code
+  const applyDiscountCode = () => {
+    const code = discountCode.trim().toUpperCase();
+    setDiscountError('');
+
+    if (!code) {
+      setDiscountError('Vui lòng nhập mã giảm giá');
+      return;
+    }
+
+    // Validate discount codes
+    if (code === 'SAVE10') {
+      setAppliedDiscount({ code, amount: 10, type: 'percent' });
+      Alert.alert('Thành công', 'Đã áp dụng giảm giá 10%');
+    } else if (code === 'SAVE50K') {
+      setAppliedDiscount({ code, amount: 50000, type: 'fixed' });
+      Alert.alert('Thành công', 'Đã áp dụng giảm giá 50,000đ');
+    } else if (code === 'FREESHIP') {
+      setAppliedDiscount({ code, amount: 0, type: 'fixed' });
+      Alert.alert('Thành công', 'Miễn phí vận chuyển');
+    } else {
+      setDiscountError('Mã giảm giá không hợp lệ');
+    }
+  };
+
+  // Remove discount
+  const removeDiscount = () => {
+    setAppliedDiscount(null);
+    setDiscountCode('');
+    setDiscountError('');
+  };
+
   // Tính tổng tiền
-  const totalPrice = cart?.items?.reduce((total: number, item: any) => total + (item.price * item.quantity), 0) || 0;
+  const subtotal = cart?.items?.reduce((total: number, item: any) => total + (item.price * item.quantity), 0) || 0;
   const totalItems = cart?.items?.reduce((total: number, item: any) => total + item.quantity, 0) || 0;
+  
+  // Calculate discount amount
+  let discountAmount = 0;
+  if (appliedDiscount) {
+    if (appliedDiscount.type === 'percent') {
+      discountAmount = Math.floor(subtotal * appliedDiscount.amount / 100);
+    } else {
+      discountAmount = appliedDiscount.amount;
+    }
+  }
+  
+  // Final price after discount
+  const totalPrice = subtotal - discountAmount;
 
   // Cập nhật cart count vào store
   useEffect(() => {
@@ -374,6 +428,80 @@ export default function CartScreen() {
 
       {cart?.items?.length > 0 && (
         <View style={styles.footer}>
+          {/* Payment Method Selection */}
+          <View style={styles.paymentContainer}>
+            <Text style={styles.sectionLabel}>Phương thức thanh toán</Text>
+            <View style={styles.paymentMethods}>
+              <TouchableOpacity
+                style={[styles.paymentMethod, paymentMethod === 'cash' && styles.paymentMethodActive]}
+                onPress={() => setPaymentMethod('cash')}
+              >
+                <Ionicons name="cash-outline" size={24} color={paymentMethod === 'cash' ? '#000' : '#666'} />
+                <Text style={[styles.paymentText, paymentMethod === 'cash' && styles.paymentTextActive]}>
+                  Tiền mặt
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.paymentMethod, paymentMethod === 'momo' && styles.paymentMethodActive]}
+                onPress={() => setPaymentMethod('momo')}
+              >
+                <Ionicons name="wallet-outline" size={24} color={paymentMethod === 'momo' ? '#000' : '#666'} />
+                <Text style={[styles.paymentText, paymentMethod === 'momo' && styles.paymentTextActive]}>
+                  Momo
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.paymentMethod, paymentMethod === 'bank' && styles.paymentMethodActive]}
+                onPress={() => setPaymentMethod('bank')}
+              >
+                <Ionicons name="card-outline" size={24} color={paymentMethod === 'bank' ? '#000' : '#666'} />
+                <Text style={[styles.paymentText, paymentMethod === 'bank' && styles.paymentTextActive]}>
+                  Ngân hàng
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Discount Code */}
+          <View style={styles.discountContainer}>
+            <Text style={styles.sectionLabel}>Mã giảm giá</Text>
+            {!appliedDiscount ? (
+              <View style={styles.discountInputRow}>
+                <TextInput
+                  style={styles.discountInput}
+                  placeholder="Nhập mã giảm giá"
+                  value={discountCode}
+                  onChangeText={(text) => {
+                    setDiscountCode(text);
+                    setDiscountError('');
+                  }}
+                  autoCapitalize="characters"
+                />
+                <TouchableOpacity style={styles.applyBtn} onPress={applyDiscountCode}>
+                  <Text style={styles.applyBtnText}>Áp dụng</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.appliedDiscountRow}>
+                <View style={styles.appliedDiscountInfo}>
+                  <Ionicons name="pricetag" size={18} color="#4CAF50" />
+                  <Text style={styles.appliedDiscountText}>{appliedDiscount.code}</Text>
+                  <Text style={styles.appliedDiscountAmount}>
+                    -{appliedDiscount.type === 'percent' ? `${appliedDiscount.amount}%` : `${appliedDiscount.amount.toLocaleString()}đ`}
+                  </Text>
+                </View>
+                <TouchableOpacity onPress={removeDiscount}>
+                  <Ionicons name="close-circle" size={24} color="#ff4444" />
+                </TouchableOpacity>
+              </View>
+            )}
+            {discountError ? (
+              <Text style={styles.discountError}>{discountError}</Text>
+            ) : null}
+          </View>
+
           {showAddressInput && (
             <View style={styles.addressContainer}>
               <Text style={styles.addressLabel}>Địa chỉ giao hàng:</Text>
@@ -393,6 +521,16 @@ export default function CartScreen() {
               <Text style={styles.summaryLabel}>Tổng sản phẩm:</Text>
               <Text style={styles.summaryValue}>{totalItems} sản phẩm</Text>
             </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Tạm tính:</Text>
+              <Text style={styles.summaryValue}>{subtotal.toLocaleString()} đ</Text>
+            </View>
+            {appliedDiscount && discountAmount > 0 && (
+              <View style={styles.summaryRow}>
+                <Text style={styles.discountLabel}>Giảm giá:</Text>
+                <Text style={styles.discountValue}>-{discountAmount.toLocaleString()} đ</Text>
+              </View>
+            )}
             <View style={styles.summaryRow}>
               <Text style={styles.totalLabel}>TỔNG CỘNG:</Text>
               <Text style={styles.totalAmount}>{totalPrice.toLocaleString()} đ</Text>
@@ -666,5 +804,119 @@ const styles = StyleSheet.create({
     fontWeight: 'bold', 
     fontSize: 16,
     letterSpacing: 0.5
+  },
+  // Payment method styles
+  paymentContainer: {
+    marginBottom: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee'
+  },
+  sectionLabel: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#000',
+    marginBottom: 12
+  },
+  paymentMethods: {
+    flexDirection: 'row',
+    gap: 10
+  },
+  paymentMethod: {
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#ddd',
+    backgroundColor: '#f9f9f9'
+  },
+  paymentMethodActive: {
+    borderColor: '#000',
+    backgroundColor: '#fff'
+  },
+  paymentText: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 6,
+    fontWeight: '600'
+  },
+  paymentTextActive: {
+    color: '#000',
+    fontWeight: 'bold'
+  },
+  // Discount code styles
+  discountContainer: {
+    marginBottom: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee'
+  },
+  discountInputRow: {
+    flexDirection: 'row',
+    gap: 8
+  },
+  discountInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    backgroundColor: '#f9f9f9'
+  },
+  applyBtn: {
+    backgroundColor: '#000',
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  applyBtnText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold'
+  },
+  appliedDiscountRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#f0fdf4',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#86efac'
+  },
+  appliedDiscountInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8
+  },
+  appliedDiscountText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#166534'
+  },
+  appliedDiscountAmount: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#4CAF50'
+  },
+  discountError: {
+    color: '#ff4444',
+    fontSize: 12,
+    marginTop: 6
+  },
+  discountLabel: {
+    fontSize: 14,
+    color: '#4CAF50',
+    fontWeight: '600'
+  },
+  discountValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#4CAF50'
   }
 });

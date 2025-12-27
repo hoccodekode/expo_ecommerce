@@ -17,7 +17,7 @@ import { useRouter, Stack } from 'expo-router';
 import { useUser } from '@clerk/clerk-expo';
 
 interface Address {
-  id: string;
+  _id: string;
   name: string;
   phone: string;
   address: string;
@@ -99,7 +99,7 @@ export default function ShippingAddressScreen() {
     try {
       if (editingAddress) {
         // Update existing
-        const response = await fetch(`https://expo-ecommerce-wrd1.onrender.com/api/addresses/${editingAddress.id}`, {
+        const response = await fetch(`https://expo-ecommerce-wrd1.onrender.com/api/addresses/${editingAddress._id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -218,7 +218,7 @@ export default function ShippingAddressScreen() {
           <TouchableOpacity onPress={() => openEditModal(item)} style={styles.iconBtn}>
             <Ionicons name="pencil-outline" size={20} color="#666" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.iconBtn}>
+          <TouchableOpacity onPress={() => handleDelete(item._id)} style={styles.iconBtn}>
             <Ionicons name="trash-outline" size={20} color="#ff4444" />
           </TouchableOpacity>
         </View>
@@ -237,7 +237,7 @@ export default function ShippingAddressScreen() {
       {!item.isDefault && (
         <TouchableOpacity
           style={styles.setDefaultBtn}
-          onPress={() => handleSetDefault(item.id)}
+          onPress={() => handleSetDefault(item._id)}
         >
           <Text style={styles.setDefaultText}>Đặt làm mặc định</Text>
         </TouchableOpacity>
@@ -261,7 +261,7 @@ export default function ShippingAddressScreen() {
       {/* Address List */}
       <FlatList
         data={addresses}
-        keyExtractor={item => item.id}
+        keyExtractor={item => item._id}
         renderItem={renderAddress}
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={

@@ -54,6 +54,27 @@ export default function AdminPage() {
     }
   };
 
+  // 5. Hàm cập nhật trạng thái đơn hàng
+  const handleUpdateOrderStatus = async (orderId, newStatus) => {
+    try {
+      const response = await fetch(`${ORDERS_URL}/${orderId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      
+      if (response.ok) {
+        fetchOrders(); // Reload danh sách
+        alert("Cập nhật trạng thái thành công");
+      } else {
+        alert("Lỗi khi cập nhật trạng thái");
+      }
+    } catch (err) {
+      console.error("Lỗi cập nhật trạng thái:", err);
+      alert("Lỗi khi cập nhật trạng thái");
+    }
+  };
+
  
   const [formData, setFormData] = useState({
     name: "",
@@ -335,29 +356,203 @@ useEffect(() => {
         {/* TAB: DASHBOARD */}
         {activeTab === "dashboard" && (
           <div className="animate-in fade-in duration-500">
-            <h1 className="text-2xl font-bold text-gray-800 mb-8">
-              Tổng quan hệ thống
+            <h1 className="text-3xl font-bold text-gray-800 mb-8 flex items-center">
+              <LayoutDashboard className="mr-3 text-blue-600" size={32} />
+              Dashboard - Tổng quan
             </h1>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <StatCard
-                title="Tổng sản phẩm"
-                value={products.length}
-                icon={<Package className="text-blue-600" />}
-              />
-              <StatCard title="Đơn hàng mới" value={orders.length} icon={<Package className="text-orange-600" />} />
-              <StatCard
-                title="Khách hàng"
-                value={users.length}
-                icon={<Users className="text-green-600" />}
-              />
-              <StatCard
-                title="Doanh thu"
-                value="1.2 tỷ"
-                icon={<DollarSign className="text-orange-600" />}
-              />
+
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 border border-blue-200 shadow-sm">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="bg-blue-600 p-3 rounded-lg">
+                    <Package className="text-white" size={24} />
+                  </div>
+                  <span className="text-xs font-semibold text-blue-600 bg-white px-2 py-1 rounded-full">
+                    {products.filter(p => p.isActive !== false).length} active
+                  </span>
+                </div>
+                <h3 className="text-2xl font-bold text-gray-800 mb-1">{products.length}</h3>
+                <p className="text-sm text-gray-600 font-medium">Tổng sản phẩm</p>
+              </div>
+
+              <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-6 border border-orange-200 shadow-sm">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="bg-orange-600 p-3 rounded-lg">
+                    <ShoppingBag className="text-white" size={24} />
+                  </div>
+                  <span className="text-xs font-semibold text-orange-600 bg-white px-2 py-1 rounded-full">
+                    {orders.filter(o => o.status === "Chờ xử lý").length} pending
+                  </span>
+                </div>
+                <h3 className="text-2xl font-bold text-gray-800 mb-1">{orders.length}</h3>
+                <p className="text-sm text-gray-600 font-medium">Tổng đơn hàng</p>
+              </div>
+
+              <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 border border-green-200 shadow-sm">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="bg-green-600 p-3 rounded-lg">
+                    <Users className="text-white" size={24} />
+                  </div>
+                </div>
+                <h3 className="text-2xl font-bold text-gray-800 mb-1">{users.length}</h3>
+                <p className="text-sm text-gray-600 font-medium">Khách hàng</p>
+              </div>
+
+              <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6 border border-purple-200 shadow-sm">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="bg-purple-600 p-3 rounded-lg">
+                    <DollarSign className="text-white" size={24} />
+                  </div>
+                </div>
+                <h3 className="text-2xl font-bold text-gray-800 mb-1">
+                  {(orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0) / 1000000).toFixed(1)}M
+                </h3>
+                <p className="text-sm text-gray-600 font-medium">Doanh thu (VNĐ)</p>
+              </div>
             </div>
-            <div className="bg-white p-20 rounded-xl border border-dashed border-gray-300 text-center text-gray-400">
-              Biểu đồ doanh thu sẽ hiển thị ở đây
+
+            {/* Charts and Recent Activity */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+              {/* Recent Orders */}
+              <div className="lg:col-span-2 bg-white rounded-xl shadow-md border border-gray-100 p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-lg font-bold text-gray-800 flex items-center">
+                    <Package className="mr-2 text-blue-600" size={20} />
+                    Đơn hàng gần đây
+                  </h2>
+                  <button 
+                    onClick={() => setActiveTab("orders")}
+                    className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    Xem tất cả →
+                  </button>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 border-b">
+                      <tr>
+                        <th className="p-3 text-left text-xs font-semibold text-gray-600">Mã đơn</th>
+                        <th className="p-3 text-left text-xs font-semibold text-gray-600">Ngày</th>
+                        <th className="p-3 text-left text-xs font-semibold text-gray-600">Tổng tiền</th>
+                        <th className="p-3 text-left text-xs font-semibold text-gray-600">Trạng thái</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {orders.slice(0, 5).map((order) => (
+                        <tr key={order._id} className="hover:bg-gray-50">
+                          <td className="p-3 font-mono text-xs text-blue-600">
+                            #{order._id.slice(-6).toUpperCase()}
+                          </td>
+                          <td className="p-3 text-xs text-gray-600">
+                            {new Date(order.createdAt).toLocaleDateString("vi-VN")}
+                          </td>
+                          <td className="p-3 font-semibold text-gray-800">
+                            {order.totalAmount?.toLocaleString()}đ
+                          </td>
+                          <td className="p-3">
+                            <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${
+                              order.status === "Hoàn thành" ? "bg-green-100 text-green-700" :
+                              order.status === "Đang giao" ? "bg-blue-100 text-blue-700" :
+                              order.status === "Chờ xử lý" ? "bg-orange-100 text-orange-700" :
+                              "bg-red-100 text-red-700"
+                            }`}>
+                              {order.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {orders.length === 0 && (
+                    <div className="py-12 text-center text-gray-400">
+                      Chưa có đơn hàng nào
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Order Status Summary */}
+              <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+                <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                  <ShoppingBag className="mr-2 text-blue-600" size={20} />
+                  Trạng thái đơn hàng
+                </h2>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg border border-orange-100">
+                    <span className="text-sm font-medium text-gray-700">Chờ xử lý</span>
+                    <span className="text-lg font-bold text-orange-600">
+                      {orders.filter(o => o.status === "Chờ xử lý").length}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-100">
+                    <span className="text-sm font-medium text-gray-700">Đang giao</span>
+                    <span className="text-lg font-bold text-blue-600">
+                      {orders.filter(o => o.status === "Đang giao").length}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-100">
+                    <span className="text-sm font-medium text-gray-700">Hoàn thành</span>
+                    <span className="text-lg font-bold text-green-600">
+                      {orders.filter(o => o.status === "Hoàn thành").length}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-100">
+                    <span className="text-sm font-medium text-gray-700">Đã hủy</span>
+                    <span className="text-lg font-bold text-red-600">
+                      {orders.filter(o => o.status === "Đã hủy").length}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Top Products */}
+            <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-bold text-gray-800 flex items-center">
+                  <Package className="mr-2 text-blue-600" size={20} />
+                  Sản phẩm nổi bật
+                </h2>
+                <button 
+                  onClick={() => setActiveTab("products")}
+                  className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  Xem tất cả →
+                </button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {products.slice(0, 4).map((product) => (
+                  <div key={product._id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                    <img 
+                      src={product.image} 
+                      alt={product.name}
+                      className="w-full h-32 object-cover rounded-lg mb-3"
+                    />
+                    <h3 className="font-semibold text-sm text-gray-800 mb-1 truncate">
+                      {product.name}
+                    </h3>
+                    <p className="text-xs text-gray-500 mb-2">{product.category}</p>
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-blue-600">
+                        {Number(product.price).toLocaleString()}đ
+                      </span>
+                      <span className={`text-xs px-2 py-1 rounded ${
+                        product.stock > 10 ? "bg-green-100 text-green-700" :
+                        product.stock > 0 ? "bg-yellow-100 text-yellow-700" :
+                        "bg-red-100 text-red-700"
+                      }`}>
+                        {product.stock} sp
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {products.length === 0 && (
+                <div className="py-12 text-center text-gray-400">
+                  Chưa có sản phẩm nào
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -751,15 +946,24 @@ useEffect(() => {
                         {order.totalAmount?.toLocaleString()}đ
                       </td>
                       <td className="p-4">
-                        <span
-                          className={`px-2 py-1 rounded-full text-[10px] font-bold ${
-                            order.status === "Đã giao"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-orange-100 text-orange-700"
+                        <select
+                          value={order.status}
+                          onChange={(e) => handleUpdateOrderStatus(order._id, e.target.value)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold border-2 cursor-pointer transition-all ${
+                            order.status === "Chờ xử lý"
+                              ? "bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100"
+                              : order.status === "Đang giao"
+                              ? "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
+                              : order.status === "Hoàn thành"
+                              ? "bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
+                              : "bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
                           }`}
                         >
-                          {order.status}
-                        </span>
+                          <option value="Chờ xử lý">Chờ xử lý</option>
+                          <option value="Đang giao">Đang giao</option>
+                          <option value="Hoàn thành">Hoàn thành</option>
+                          <option value="Đã hủy">Đã hủy</option>
+                        </select>
                       </td>
                       <td className="p-4 text-center space-x-2">
                         <button
