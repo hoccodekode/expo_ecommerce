@@ -1,110 +1,177 @@
-import * as React from 'react'
-import { Text, TextInput, TouchableOpacity, View } from 'react-native'
-import { useSignUp } from '@clerk/clerk-expo'
-import { Link, useRouter } from 'expo-router'
+import { useSignUp } from '@clerk/clerk-expo';
+import { useRouter, Stack } from 'expo-router';
+import React from 'react';
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  ActivityIndicator
+} from "react-native";
 
 export default function SignUpScreen() {
-  const { isLoaded, signUp, setActive } = useSignUp()
-  const router = useRouter()
+  const { isLoaded, signUp, setActive } = useSignUp();
+  const router = useRouter();
 
-  const [emailAddress, setEmailAddress] = React.useState('')
-  const [password, setPassword] = React.useState('')
-  const [pendingVerification, setPendingVerification] = React.useState(false)
-  const [code, setCode] = React.useState('')
+  const [emailAddress, setEmailAddress] = React.useState('');
+  const [password, setPassword] = React.useState('');
+  const [fullName, setFullName] = React.useState('');
+  const [pendingVerification, setPendingVerification] = React.useState(false);
+  const [code, setCode] = React.useState('');
+  const [loading, setLoading] = React.useState(false);
 
-  // Handle submission of sign-up form
+  // Bước 1: Gửi thông tin đăng ký ban đầu
   const onSignUpPress = async () => {
-    if (!isLoaded) return
+    if (!isLoaded) return;
+    if (!emailAddress || !password || !fullName) {
+      Alert.alert("Lỗi", "Vui lòng điền đầy đủ thông tin");
+      return;
+    }
 
-    // Start sign-up process using email and password provided
+    setLoading(true);
     try {
       await signUp.create({
-        emailAddress,
+        emailAddress: emailAddress.trim(),
         password,
-      })
+        firstName: fullName, // Lưu tên vào hệ thống Clerk
+      });
 
-      // Send user an email with verification code
-      await signUp.prepareEmailAddressVerification({ strategy: 'email_code' })
-
-      // Set 'pendingVerification' to true to display second form
-      // and capture OTP code
-      setPendingVerification(true)
-    } catch (err) {
-      // See https://clerk.com/docs/custom-flows/error-handling
-      // for more info on error handling
-      console.error(JSON.stringify(err, null, 2))
+      // Gửi mã OTP về email
+      await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+      setPendingVerification(true);
+      Alert.alert("Thành công", "Mã xác thực đã được gửi về email của bạn!");
+    } catch (err: any) {
+      Alert.alert("Lỗi", err.errors?.[0]?.message || "Đăng ký thất bại");
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
-  // Handle submission of verification form
+  // Bước 2: Xác thực OTP để hoàn tất
   const onVerifyPress = async () => {
-    if (!isLoaded) return
-
+    if (!isLoaded) return;
+    setLoading(true);
     try {
-      // Use the code the user provided to attempt verification
-      const signUpAttempt = await signUp.attemptEmailAddressVerification({
-        code,
-      })
-
-      // If verification was completed, set the session to active
-      // and redirect the user
-      if (signUpAttempt.status === 'complete') {
-        await setActive({ session: signUpAttempt.createdSessionId })
-        router.replace('/')
-      } else {
-        // If the status is not complete, check why. User may need to
-        // complete further steps.
-        console.error(JSON.stringify(signUpAttempt, null, 2))
+      const completeSignUp = await signUp.attemptEmailAddressVerification({ code });
+      
+      if (completeSignUp.status === 'complete') {
+        await setActive({ session: completeSignUp.createdSessionId });
+        router.replace('/');
       }
-    } catch (err) {
-      // See https://clerk.com/docs/custom-flows/error-handling
-      // for more info on error handling
-      console.error(JSON.stringify(err, null, 2))
+    } catch (err: any) {
+      Alert.alert("Lỗi OTP", err.errors?.[0]?.message || "Mã xác thực không đúng");
+    } finally {
+      setLoading(false);
     }
-  }
-
-  if (pendingVerification) {
-    return (
-      <>
-        <Text>Verify your email</Text>
-        <TextInput
-          value={code}
-          placeholder="Enter your verification code"
-          onChangeText={(code) => setCode(code)}
-        />
-        <TouchableOpacity onPress={onVerifyPress}>
-          <Text>Verify</Text>
-        </TouchableOpacity>
-      </>
-    )
-  }
+  };
 
   return (
-    <View>
-      <>
-        <Text>Sign up</Text>
-        <TextInput
-          autoCapitalize="none"
-          value={emailAddress}
-          placeholder="Enter email"
-          onChangeText={(email) => setEmailAddress(email)}
-        />
-        <TextInput
-          value={password}
-          placeholder="Enter password"
-          secureTextEntry={true}
-          onChangeText={(password) => setPassword(password)}
-        />
-        <TouchableOpacity onPress={onSignUpPress}>
-          <Text>Continue</Text>
-        </TouchableOpacity>
-        <View style={{ display: 'flex', flexDirection: 'row', gap: 3 }}>
-          <Text>Already have an account?</Text>
-          <Link href="/sign-in">
-            <Text>Sign in</Text>
-          </Link>
-        </View>
-      </>
-    </View>
-  )
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      <Stack.Screen options={{ headerShown: false }} />
+      
+      <View style={styles.container}>
+        <Text style={styles.logo}>WindDental</Text>
+
+        {!pendingVerification ? (
+          // Giao diện Đăng ký ban đầu
+          <>
+            <Text style={styles.titleText}>Tạo tài khoản</Text>
+
+            <View style={[styles.inputBox, { marginTop: 32 }]}>
+              <TextInput
+                placeholder="Họ và tên"
+                value={fullName}
+                onChangeText={setFullName}
+                style={styles.input}
+              />
+            </View>
+
+            <View style={styles.inputBox}>
+              <TextInput
+                placeholder="Email"
+                value={emailAddress}
+                onChangeText={setEmailAddress}
+                style={styles.input}
+                autoCapitalize="none"
+                keyboardType="email-address"
+              />
+            </View>
+
+            <View style={styles.inputBox}>
+              <TextInput
+                placeholder="Mật khẩu"
+                secureTextEntry
+                value={password}
+                onChangeText={setPassword}
+                style={styles.input}
+              />
+            </View>
+
+            <TouchableOpacity
+              style={[styles.button, loading && { opacity: 0.7 }]}
+              onPress={onSignUpPress}
+              disabled={loading}
+            >
+              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Đăng ký</Text>}
+            </TouchableOpacity>
+
+            <View style={styles.footerRow}>
+              <Text style={{ color: "#555", fontWeight: "600" }}>Đã có tài khoản?</Text>
+              <TouchableOpacity onPress={() => router.back()}>
+                <Text style={styles.register}>Đăng nhập</Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        ) : (
+          // Giao diện nhập mã OTP
+          <>
+            <Text style={styles.titleText}>Xác thực Email</Text>
+            <Text style={styles.subText}>Vui lòng nhập mã OTP đã gửi tới {emailAddress}</Text>
+
+            <View style={[styles.inputBox, { marginTop: 32 }]}>
+              <TextInput
+                placeholder="Nhập mã xác thực"
+                value={code}
+                onChangeText={setCode}
+                style={styles.input}
+                keyboardType="number-pad"
+              />
+            </View>
+
+            <TouchableOpacity
+              style={[styles.button, { backgroundColor: '#10b981' }, loading && { opacity: 0.7 }]}
+              onPress={onVerifyPress}
+              disabled={loading}
+            >
+              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Xác nhận</Text>}
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => setPendingVerification(false)} style={{ marginTop: 20 }}>
+              <Text style={{ textAlign: 'center', color: '#555' }}>Quay lại</Text>
+            </TouchableOpacity>
+          </>
+        )}
+      </View>
+    </KeyboardAvoidingView>
+  );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1, padding: 26, paddingTop: 100, backgroundColor: "#E0F3F4" },
+  logo: { fontSize: 36, fontWeight: "800", alignSelf: "center", marginBottom: 20, color: "#47e608ff" },
+  titleText: { fontSize: 20, fontWeight: "600", color: '#331559', textAlign: "center" },
+  subText: { fontSize: 14, color: '#555', textAlign: "center", marginTop: 8 },
+  inputBox: { marginBottom: 16 },
+  input: { borderWidth: 1, borderColor: "#ddd", borderRadius: 12, padding: 12, fontSize: 16, backgroundColor: "#fafafa" },
+  button: { backgroundColor: "#057893", paddingVertical: 14, borderRadius: 15, marginTop: 20 },
+  buttonText: { textAlign: "center", color: "#fff", fontSize: 17, fontWeight: "600" },
+  footerRow: { flexDirection: "row", justifyContent: "center", marginTop: 24, gap: 6 },
+  register: { color: "#057893", fontWeight: "600" }
+});

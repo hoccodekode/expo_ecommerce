@@ -38,7 +38,7 @@ export default function Page() {
 
   return (
     <View className="flex-1 p-4 bg-white">
-      <SignedIn>
+      
         <View className="flex-row justify-between items-center mb-4">
           <Text className="text-lg font-bold">Chào {user?.emailAddresses[0].emailAddress}</Text>
           <SignOutButton />
@@ -67,18 +67,8 @@ export default function Page() {
             )}
           />
         )}
-      </SignedIn>
       
-      <SignedOut>
-        <View className="flex-1 justify-center items-center">
-            <Link href="/(auth)/sign-in" className="mb-4">
-            <Text className="text-blue-500 text-lg">Sign in</Text>
-            </Link>
-            <Link href="/(auth)/sign-up">
-            <Text className="text-blue-500 text-lg">Sign up</Text>
-            </Link>
-        </View>
-      </SignedOut>
+      
     </View>
   )
 }

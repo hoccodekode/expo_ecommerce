@@ -25,6 +25,10 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+// API Health Check
+app.get('/api/health', (req, res) => {
+  res.send('Hello from Express server!');
+});
 
 // --- ROUTES ---
 
@@ -98,9 +102,14 @@ app.post('/api/upload', upload.single('image'), (req, res) => {
   }
 });
 
-// API Health Check
-app.get('/api/health', (req, res) => {
-  res.send('Hello from Express server!');
+// API lấy tất cả khách hàng (Sắp xếp người mới nhất lên đầu)
+app.get('/api/users', async (req, res) => {
+  try {
+    const users = await User.find().sort({ createdAt: -1 });
+    res.status(200).json(users);
+  } catch (error) {
+    res.status(500).json({ message: "Lỗi khi lấy danh sách khách hàng", error });
+  }
 });
 
 // --- PHỤC VỤ GIAO DIỆN ADMIN ---
