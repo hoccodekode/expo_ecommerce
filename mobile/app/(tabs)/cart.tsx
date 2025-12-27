@@ -4,10 +4,13 @@ import { useUser } from '@clerk/clerk-expo';
 import { useIsFocused } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { setCartCount } from '@/app/cartCountStore';
+import { useRouter } from 'expo-router';
 
 export default function CartScreen() {
   const { user } = useUser();
   const isFocused = useIsFocused();
+  const router = useRouter();
   const [cart, setCart] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [checkingOut, setCheckingOut] = useState(false);
@@ -251,9 +254,47 @@ export default function CartScreen() {
     if (isFocused && user) fetchCart();
   }, [isFocused, user]);
 
+  // Load selected address when returning from address screen
+  useEffect(() => {
+    if (isFocused) {
+      loadSelectedAddress();
+    }
+  }, [isFocused]);
+
+  const loadSelectedAddress = async () => {
+    if (!user) return;
+    try {
+      const response = await fetch(`https://expo-ecommerce-wrd1.onrender.com/api/addresses/${user.id}`);
+      
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.error('Server returned non-JSON response for addresses');
+        return;
+      }
+      
+      if (response.ok) {
+        const addresses = await response.json();
+        // Find default address
+        const defaultAddr = addresses.find((addr: any) => addr.isDefault);
+        if (defaultAddr) {
+          setAddress(`${defaultAddr.name} - ${defaultAddr.phone}\n${defaultAddr.address}`);
+          setShowAddressInput(true);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading address:', error);
+    }
+  };
+
   // Tính tổng tiền
   const totalPrice = cart?.items?.reduce((total: number, item: any) => total + (item.price * item.quantity), 0) || 0;
   const totalItems = cart?.items?.reduce((total: number, item: any) => total + item.quantity, 0) || 0;
+
+  // Cập nhật cart count vào store
+  useEffect(() => {
+    setCartCount(totalItems);
+  }, [totalItems]);
 
   if (loading) {
     return (
@@ -361,10 +402,10 @@ export default function CartScreen() {
           {!showAddressInput && (
             <TouchableOpacity 
               style={styles.addressToggleBtn}
-              onPress={() => setShowAddressInput(true)}
+              onPress={() => router.push('/address/shipping')}
             >
               <Ionicons name="location-outline" size={18} color="#000" />
-              <Text style={styles.addressToggleText}>Nhập địa chỉ giao hàng</Text>
+              <Text style={styles.addressToggleText}>Chọn địa chỉ giao hàng</Text>
             </TouchableOpacity>
           )}
 

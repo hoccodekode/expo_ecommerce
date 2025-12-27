@@ -10,47 +10,46 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
+import { getWishlistItems, removeFromWishlist, clearWishlist, WishlistItem } from '@/app/wishlistStore';
+import { setWishlistCount } from '@/app/cartCountStore';
 
 const { width } = Dimensions.get('window');
 const COLUMN_WIDTH = (width - 48) / 2; // Tính toán chiều rộng card cho 2 cột
 
-// ================= MOCK DATA =================
-const INITIAL_FAVORITES = [
-  {
-    id: 'f1',
-    name: 'Áo hoodie Wind Signature',
-    price: 399000,
-    image: 'https://picsum.photos/400/500?21',
-  },
-  {
-    id: 'f2',
-    name: 'Váy dự tiệc Minimalist',
-    price: 599000,
-    image: 'https://picsum.photos/400/500?22',
-  },
-  {
-    id: 'f3',
-    name: 'Quần jean Vintage Blue',
-    price: 349000,
-    image: 'https://picsum.photos/400/500?23',
-  },
-];
-
 export default function WishlistScreen() {
-  const [favorites, setFavorites] = useState(INITIAL_FAVORITES);
+  const [favorites, setFavorites] = useState<WishlistItem[]>([]);
+
+  // Cập nhật danh sách yêu thích mỗi khi màn hình được focus
+  useFocusEffect(
+    React.useCallback(() => {
+      const items = getWishlistItems();
+      setFavorites(items);
+      setWishlistCount(items.length); // Cập nhật count
+    }, [])
+  );
 
   const toggleFavorite = (id: string) => {
-    setFavorites((prev) => prev.filter((item) => item.id !== id));
+    removeFromWishlist(id);
+    const items = getWishlistItems();
+    setFavorites(items);
+    setWishlistCount(items.length);
   };
 
-  const renderItem = ({ item }: { item: typeof INITIAL_FAVORITES[0] }) => (
+  const handleClearAll = () => {
+    clearWishlist();
+    setFavorites([]);
+    setWishlistCount(0);
+  };
+
+  const renderItem = ({ item }: { item: WishlistItem }) => (
     <View style={styles.card}>
       {/* Image Section */}
       <View style={styles.imageWrap}>
         <Image source={{ uri: item.image }} style={styles.image} />
         <TouchableOpacity 
           style={styles.heartButton}
-          onPress={() => toggleFavorite(item.id)}
+          onPress={() => toggleFavorite(item._id)}
         >
           <Ionicons name="heart" size={20} color="#FF4B4B" />
         </TouchableOpacity>
@@ -79,7 +78,7 @@ export default function WishlistScreen() {
           <Text style={styles.title}>YÊU THÍCH</Text>
           <Text style={styles.subTitle}>{favorites.length} sản phẩm đã lưu</Text>
         </View>
-        <TouchableOpacity style={styles.clearAll}>
+        <TouchableOpacity style={styles.clearAll} onPress={handleClearAll}>
           <Text style={styles.clearAllText}>Xóa tất cả</Text>
         </TouchableOpacity>
       </View>
@@ -87,7 +86,7 @@ export default function WishlistScreen() {
       {/* ===== LIST ===== */}
       <FlatList
         data={favorites}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item._id}
         renderItem={renderItem}
         numColumns={2}
         columnWrapperStyle={{ justifyContent: 'space-between' }}

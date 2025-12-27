@@ -3,12 +3,25 @@
 // export default function Layout() {
 //   return <Stack />
 // }
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { View, Text } from 'react-native';
+import { getCartCount, getWishlistCount, subscribe } from '@/app/cartCountStore';
 
 export default function TabLayout() {
+  const [cartCount, setCartCount] = useState(getCartCount());
+  const [wishlistCount, setWishlistCount] = useState(getWishlistCount());
+
+  useEffect(() => {
+    // Subscribe to count changes
+    const unsubscribe = subscribe(() => {
+      setCartCount(getCartCount());
+      setWishlistCount(getWishlistCount());
+    });
+    
+    return unsubscribe;
+  }, []);
   return (
     <Tabs
       screenOptions={{
@@ -41,18 +54,52 @@ export default function TabLayout() {
         }}
       />
 
-      {/* 2. Yêu thích */}
+      {/* 2. Tìm kiếm - Ẩn khỏi tab bar */}
+      <Tabs.Screen
+        name="search"
+        options={{
+          href: null, // Ẩn tab này khỏi tab bar
+          title: 'Tìm kiếm',
+        }}
+      />
+
+      {/* 3. Yêu thích */}
       <Tabs.Screen
         name="wishlist"
         options={{
           title: 'Yêu thích',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'heart' : 'heart-outline'} size={24} color={color} />
+            <View style={{ width: 24, height: 24 }}>
+              <Ionicons name={focused ? 'heart' : 'heart-outline'} size={24} color={color} />
+              {wishlistCount > 0 && (
+                <View style={{
+                  position: 'absolute',
+                  right: -6,
+                  top: -3,
+                  backgroundColor: '#FF4B4B',
+                  borderRadius: 8,
+                  minWidth: 16,
+                  height: 16,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  paddingHorizontal: 4,
+                  zIndex: 1
+                }}>
+                  <Text style={{ 
+                    color: 'white', 
+                    fontSize: 10, 
+                    fontWeight: 'bold' 
+                  }}>
+                    {wishlistCount}
+                  </Text>
+                </View>
+              )}
+            </View>
           ),
         }}
       />
 
-      {/* 3. Giỏ hàng */}
+      {/* 4. Giỏ hàng */}
       <Tabs.Screen
   name="cart"
   options={{
@@ -64,33 +111,35 @@ export default function TabLayout() {
           size={24} 
           color={color} 
         />
-        {/* Phần Badge số lượng - Cần căn chỉnh absolute chính xác */}
-        <View style={{
-          position: 'absolute',
-          right: -6,
-          top: -3,
-          backgroundColor: 'black',
-          borderRadius: 8,
-          width: 16,
-          height: 16,
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 1
-        }}>
-          <Text style={{ 
-            color: 'white', 
-            fontSize: 10, 
-            fontWeight: 'bold' 
+        {cartCount > 0 && (
+          <View style={{
+            position: 'absolute',
+            right: -6,
+            top: -3,
+            backgroundColor: 'black',
+            borderRadius: 8,
+            minWidth: 16,
+            height: 16,
+            justifyContent: 'center',
+            alignItems: 'center',
+            paddingHorizontal: 4,
+            zIndex: 1
           }}>
-            2
-          </Text>
-        </View>
+            <Text style={{ 
+              color: 'white', 
+              fontSize: 10, 
+              fontWeight: 'bold' 
+            }}>
+              {cartCount}
+            </Text>
+          </View>
+        )}
       </View>
     ),
   }}
 />
 
-      {/* 4. Hồ sơ */}
+      {/* 5. Hồ sơ */}
       <Tabs.Screen
         name="profile"
         options={{

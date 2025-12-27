@@ -11,6 +11,7 @@ import User from './models/User.js';
 import Product from './models/Product.js';
 import Cart from './models/Cart.js';
 import Order from './models/Order.js';
+import Address from './models/Address.js';
 const app = express();
 
 // --- KHAI BÁO ĐƯỜNG DẪN (Để fix lỗi ReferenceError) ---
@@ -418,6 +419,138 @@ app.get('/api/cart/debug/:clerkId', async (req, res) => {
     res.status(500).json({ message: "Lỗi khi lấy danh sách giỏ hàng", error: error.message });
   }
 });
+
+// --- ROUTES ĐỊA CHỈ GIAO HÀNG ---
+
+// 1. API: Lấy tất cả địa chỉ của user
+app.get('/api/addresses/:clerkId', async (req, res) => {
+  try {
+    const addresses = await Address.find({ clerkId: req.params.clerkId }).sort({ isDefault: -1, createdAt: -1 });
+    res.status(200).json(addresses);
+  } catch (error) {
+    console.error('Lỗi khi lấy địa chỉ:', error);
+    res.status(500).json({ message: 'Lỗi khi lấy địa chỉ', error: error.message });
+  }
+});
+
+// 2. API: Thêm địa chỉ mới
+app.post('/api/addresses', async (req, res) => {
+  try {
+    const { clerkId, name, phone, address, isDefault } = req.body;
+    
+    if (!clerkId || !name || !phone || !address) {
+      return res.status(400).json({ message: 'Thiếu thông tin bắt buộc' });
+    }
+
+    // Nếu địa chỉ mới là default, bỏ default của các địa chỉ cũ
+    if (isDefault) {
+      await Address.updateMany(
+        { clerkId },
+        { $set: { isDefault: false } }
+      );
+    }
+
+    const newAddress = new Address({
+      clerkId,
+      name,
+      phone,
+      address,
+      isDefault: isDefault || false
+    });
+
+    await newAddress.save();
+    res.status(201).json(newAddress);
+  } catch (error) {
+    console.error('Lỗi khi thêm địa chỉ:', error);
+    res.status(500).json({ message: 'Lỗi khi thêm địa chỉ', error: error.message });
+  }
+});
+
+// 3. API: Cập nhật địa chỉ
+app.put('/api/addresses/:id', async (req, res) => {
+  try {
+    const { name, phone, address, isDefault } = req.body;
+    
+    const existingAddress = await Address.findById(req.params.id);
+    if (!existingAddress) {
+      return res.status(404).json({ message: 'Không tìm thấy địa chỉ' });
+    }
+
+    // Nếu set làm default, bỏ default của các địa chỉ khác
+    if (isDefault && !existingAddress.isDefault) {
+      await Address.updateMany(
+        { clerkId: existingAddress.clerkId, _id: { $ne: req.params.id } },
+        { $set: { isDefault: false } }
+      );
+    }
+
+    const updatedAddress = await Address.findByIdAndUpdate(
+      req.params.id,
+      { name, phone, address, isDefault },
+      { new: true, runValidators: true }
+    );
+
+    res.status(200).json(updatedAddress);
+  } catch (error) {
+    console.error('Lỗi khi cập nhật địa chỉ:', error);
+    res.status(500).json({ message: 'Lỗi khi cập nhật địa chỉ', error: error.message });
+  }
+});
+
+// 4. API: Xóa địa chỉ
+app.delete('/api/addresses/:id', async (req, res) => {
+  try {
+    const address = await Address.findById(req.params.id);
+    if (!address) {
+      return res.status(404).json({ message: 'Không tìm thấy địa chỉ' });
+    }
+
+    const wasDefault = address.isDefault;
+    const clerkId = address.clerkId;
+
+    await Address.findByIdAndDelete(req.params.id);
+
+    // Nếu xóa địa chỉ default, set địa chỉ đầu tiên làm default
+    if (wasDefault) {
+      const firstAddress = await Address.findOne({ clerkId }).sort({ createdAt: 1 });
+      if (firstAddress) {
+        firstAddress.isDefault = true;
+        await firstAddress.save();
+      }
+    }
+
+    res.status(200).json({ message: 'Đã xóa địa chỉ thành công' });
+  } catch (error) {
+    console.error('Lỗi khi xóa địa chỉ:', error);
+    res.status(500).json({ message: 'Lỗi khi xóa địa chỉ', error: error.message });
+  }
+});
+
+// 5. API: Đặt địa chỉ làm mặc định
+app.put('/api/addresses/:id/set-default', async (req, res) => {
+  try {
+    const address = await Address.findById(req.params.id);
+    if (!address) {
+      return res.status(404).json({ message: 'Không tìm thấy địa chỉ' });
+    }
+
+    // Bỏ default của tất cả địa chỉ khác
+    await Address.updateMany(
+      { clerkId: address.clerkId },
+      { $set: { isDefault: false } }
+    );
+
+    // Set địa chỉ này làm default
+    address.isDefault = true;
+    await address.save();
+
+    res.status(200).json(address);
+  } catch (error) {
+    console.error('Lỗi khi set default:', error);
+    res.status(500).json({ message: 'Lỗi khi set default', error: error.message });
+  }
+});
+
 // Route lấy toàn bộ đơn hàng
 app.get('/api/orders', async (req, res) => {
   try {

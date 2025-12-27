@@ -5,7 +5,6 @@ import {
   StyleSheet,
   FlatList,
   Image,
-  TextInput,
   TouchableOpacity,
   ScrollView,
   RefreshControl,
@@ -31,9 +30,14 @@ interface Product {
   _id: string;
   name: string;
   price: number;
+  originalPrice: number;
+  discountPrice?: number;
   image: string;
   description: string;
   stock: number;
+  sold?: number;
+  category: string;
+  size?: string[];
 }
 
 export default function HomeScreen() {
@@ -41,8 +45,7 @@ export default function HomeScreen() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [search, setSearch] = useState('');
-const router = useRouter();
+  const router = useRouter();
   // Lấy dữ liệu từ API thật của bạn
   const fetchProducts = async () => {
     try {
@@ -82,7 +85,13 @@ const router = useRouter();
   };
 
   const renderCategory = ({ item }: { item: typeof CATEGORIES[0] }) => (
-    <TouchableOpacity style={styles.categoryItem}>
+    <TouchableOpacity 
+      style={styles.categoryItem}
+      onPress={() => router.push({
+        pathname: '/category/[name]',
+        params: { name: item.name }
+      })}
+    >
       <View style={styles.categoryIconCircle}>
         <Ionicons name={item.icon as any} size={24} color="#000" />
       </View>
@@ -90,31 +99,58 @@ const router = useRouter();
     </TouchableOpacity>
   );
 
-  const renderProduct = ({ item }: { item: Product }) => (
-    <TouchableOpacity style={styles.productCard} activeOpacity={0.8}
-    // THÊM DÒNG NÀY: Điều hướng và truyền dữ liệu sang trang chi tiết
-    onPress={() => router.push({
-      pathname: "/product/[id]",
-      params: { 
-        id: item._id, 
-        name: item.name, 
-        price: item.price, 
-        image: item.image, 
-        description: item.description 
-      }
-    })}
-  >
-      <Image source={{ uri: item.image }} style={styles.productImage} />
-      <View style={styles.productInfo}>
-        <Text numberOfLines={2} style={styles.productName}>{item.name}</Text>
-        <Text style={styles.productPrice}>{item.price.toLocaleString()} đ</Text>
-        <TouchableOpacity style={styles.addButton}>
-          <Ionicons name="cart-outline" size={16} color="#fff" />
-          <Text style={styles.addButtonText}> Thêm</Text>
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
-  );
+  const renderProduct = ({ item }: { item: Product }) => {
+    // Tính % giảm giá
+    const discountPercent = item.originalPrice && item.price < item.originalPrice
+      ? Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)
+      : 0;
+
+    return (
+      <TouchableOpacity style={styles.productCard} activeOpacity={0.8}
+        onPress={() => router.push({
+          pathname: "/product/[id]",
+          params: { 
+            id: item._id, 
+            name: item.name, 
+            price: item.price,
+            originalPrice: item.originalPrice,
+            discountPrice: item.discountPrice,
+            image: item.image, 
+            description: item.description,
+            stock: item.stock,
+            sold: item.sold || 0,
+            size: JSON.stringify(item.size || []),
+          }
+        })}
+      >
+        <Image source={{ uri: item.image }} style={styles.productImage} />
+        
+        {/* Badge giảm giá */}
+        {discountPercent > 0 && (
+          <View style={styles.discountBadge}>
+            <Text style={styles.discountText}>-{discountPercent}%</Text>
+          </View>
+        )}
+        
+        <View style={styles.productInfo}>
+          <Text numberOfLines={2} style={styles.productName}>{item.name}</Text>
+          
+          {/* Giá */}
+          <View style={styles.priceContainer}>
+            <Text style={styles.productPrice}>{item.price.toLocaleString()} đ</Text>
+            {item.originalPrice > item.price && (
+              <Text style={styles.originalPrice}>{item.originalPrice.toLocaleString()} đ</Text>
+            )}
+          </View>
+          
+          {/* Đã bán */}
+          {item.sold && item.sold > 0 && (
+            <Text style={styles.soldText}>Đã bán {item.sold}</Text>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f4e1c9ff' }}>
@@ -142,15 +178,14 @@ const router = useRouter();
         </View>
 
         {/* ===== SEARCH ===== */}
-        <View style={styles.searchBox}>
+        <TouchableOpacity 
+          style={styles.searchBox}
+          onPress={() => router.push('/(tabs)/search')}
+          activeOpacity={0.7}
+        >
           <Ionicons name="search-outline" size={20} color="#888" style={{ marginRight: 10 }} />
-          <TextInput
-            placeholder="Bạn đang tìm gì hôm nay?"
-            value={search}
-            onChangeText={setSearch}
-            style={styles.searchInput}
-          />
-        </View>
+          <Text style={styles.searchPlaceholder}>Bạn đang tìm gì hôm nay?</Text>
+        </TouchableOpacity>
 
         {/* ===== BANNER ===== */}
         <View style={styles.bannerContainer}>
@@ -229,6 +264,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   searchInput: { flex: 1, fontSize: 15 },
+  searchPlaceholder: { flex: 1, fontSize: 15, color: '#888' },
   bannerContainer: { position: 'relative', marginBottom: 24 },
   banner: { width: '100%', height: 160, borderRadius: 20 },
   bannerOverlay: {
@@ -270,9 +306,40 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
   },
   productImage: { width: '100%', height: 170 },
+  discountBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: '#FF4B4B',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    zIndex: 1,
+  },
+  discountText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
   productInfo: { padding: 12 },
   productName: { fontSize: 14, fontWeight: '600', color: '#333', height: 40 },
-  productPrice: { fontSize: 15, color: '#000', fontWeight: 'bold', marginVertical: 6 },
+  priceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginVertical: 4,
+  },
+  productPrice: { fontSize: 15, color: '#FF4B4B', fontWeight: 'bold' },
+  originalPrice: {
+    fontSize: 12,
+    color: '#999',
+    textDecorationLine: 'line-through',
+  },
+  soldText: {
+    fontSize: 11,
+    color: '#666',
+    marginTop: 2,
+  },
   addButton: {
     flexDirection: 'row',
     backgroundColor: '#000',
