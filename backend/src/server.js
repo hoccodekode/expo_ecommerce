@@ -237,11 +237,12 @@ app.delete('/api/orders/:id', async (req, res) => {
 // --- PHỤC VỤ GIAO DIỆN ADMIN ---
 // Route cuối cùng để xử lý trang Admin (SPA)
 // Thay "/{*any}" bằng "*" để đúng chuẩn Express catch-all
+// Phục vụ các file tĩnh (css, js, images) từ thư mục dist của admin
+app.use(express.static(adminDistPath));
 app.get("/{*any}", (req, res) => {
   res.sendFile(path.join(adminDistPath, "index.html"));
 });
-// Phục vụ các file tĩnh (css, js, images) từ thư mục dist của admin
-app.use(express.static(adminDistPath));
+
 
 
 
