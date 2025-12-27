@@ -77,7 +77,7 @@ export default function SignUpScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       
       <View style={styles.container}>
-        <Text style={styles.logo}>WindDental</Text>
+        <Text style={styles.logo}>WindFashion</Text>
 
         {!pendingVerification ? (
           // Giao diện Đăng ký ban đầu
@@ -164,14 +164,14 @@ export default function SignUpScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 26, paddingTop: 100, backgroundColor: "#E0F3F4" },
-  logo: { fontSize: 36, fontWeight: "800", alignSelf: "center", marginBottom: 20, color: "#47e608ff" },
-  titleText: { fontSize: 20, fontWeight: "600", color: '#331559', textAlign: "center" },
+  container: { flex: 1, padding: 26, paddingTop: 100, backgroundColor: "#f4e1c9ff" },
+  logo: { fontSize: 36, fontWeight: "800", alignSelf: "center", marginBottom: 20, color: "#cc7606ff" },
+  titleText: { fontSize: 20, fontWeight: "600", color: '#cc7606ff', textAlign: "center" },
   subText: { fontSize: 14, color: '#555', textAlign: "center", marginTop: 8 },
   inputBox: { marginBottom: 16 },
   input: { borderWidth: 1, borderColor: "#ddd", borderRadius: 12, padding: 12, fontSize: 16, backgroundColor: "#fafafa" },
-  button: { backgroundColor: "#057893", paddingVertical: 14, borderRadius: 15, marginTop: 20 },
+  button: { backgroundColor: "#cc7606ff", paddingVertical: 14, borderRadius: 15, marginTop: 20 },
   buttonText: { textAlign: "center", color: "#fff", fontSize: 17, fontWeight: "600" },
   footerRow: { flexDirection: "row", justifyContent: "center", marginTop: 24, gap: 6 },
-  register: { color: "#057893", fontWeight: "600" }
+  register: { color: "#cc7606ff", fontWeight: "600" }
 });

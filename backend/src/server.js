@@ -9,7 +9,8 @@ import { upload } from './config/cloudinary.js';
 // Import Models
 import User from './models/User.js';
 import Product from './models/Product.js';
-
+import Cart from './models/Cart.js';
+import Order from './models/Order.js';
 const app = express();
 
 // --- KHAI BÁO ĐƯỜNG DẪN (Để fix lỗi ReferenceError) ---
@@ -112,16 +113,118 @@ app.get('/api/users', async (req, res) => {
   }
 });
 
+
+
+// --- ROUTES GIỎ HÀNG ---
+
+// 1. API: Thêm sản phẩm vào giỏ
+app.post('/api/cart/add', async (req, res) => {
+  const { clerkId, productId, name, price, image, size, quantity } = req.body;
+
+  try {
+    let cart = await Cart.findOne({ clerkId });
+
+    if (cart) {
+      // Nếu đã có giỏ hàng, kiểm tra xem sản phẩm (cùng size) đã tồn tại chưa
+      const itemIndex = cart.items.findIndex(p => p.productId == productId && p.size == size);
+
+      if (itemIndex > -1) {
+        // Nếu tồn tại rồi thì tăng số lượng
+        cart.items[itemIndex].quantity += quantity;
+      } else {
+        // Nếu chưa có thì thêm mới vào mảng items
+        cart.items.push({ productId, name, price, image, size, quantity });
+      }
+      cart = await cart.save();
+    } else {
+      // Nếu chưa có giỏ hàng thì tạo mới hoàn toàn
+      cart = await Cart.create({
+        clerkId,
+        items: [{ productId, name, price, image, size, quantity }]
+      });
+    }
+    res.status(201).json(cart);
+  } catch (error) {
+    res.status(500).json({ message: "Lỗi khi thêm vào giỏ hàng", error });
+  }
+});
+
+// 2. API: Lấy giỏ hàng của một người dùng
+app.get('/api/cart/:clerkId', async (req, res) => {
+  try {
+    const cart = await Cart.findOne({ clerkId: req.params.clerkId });
+    if (!cart) return res.status(200).json({ items: [] });
+    res.status(200).json(cart);
+  } catch (error) {
+    res.status(500).json({ message: "Lỗi khi lấy giỏ hàng", error });
+  }
+});
+
+// 3. API: Xóa sản phẩm khỏi giỏ hàng
+app.delete('/api/cart/remove', async (req, res) => {
+  const { clerkId, productId, size } = req.body;
+  try {
+    let cart = await Cart.findOne({ clerkId });
+    if (cart) {
+      cart.items = cart.items.filter(item => !(item.productId == productId && item.size == size));
+      await cart.save();
+    }
+    res.status(200).json(cart);
+  } catch (error) {
+    res.status(500).json({ message: "Lỗi khi xóa sản phẩm", error });
+  }
+});
+// Route lấy toàn bộ đơn hàng
+app.get('/api/orders', async (req, res) => {
+  try {
+    const orders = await Order.find().sort({ createdAt: -1 });
+    res.status(200).json(orders);
+  } catch (error) {
+    res.status(500).json({ message: "Lỗi lấy đơn hàng", error: error.message });
+  }
+});
+// 2. Thêm Route POST để xử lý tạo đơn hàng
+app.post('/api/orders', async (req, res) => {
+  try {
+    const { clerkId, items, totalAmount, address, status } = req.body;
+    
+    const newOrder = new Order({
+      clerkId,
+      items,
+      totalAmount,
+      address,
+      status: status || 'Chờ xử lý'
+    });
+
+    const savedOrder = await newOrder.save();
+    console.log("✅ Đã tạo đơn hàng mới:", savedOrder._id);
+    res.status(201).json(savedOrder);
+  } catch (error) {
+    console.error("❌ Lỗi tạo đơn hàng:", error.message);
+    res.status(400).json({ message: "Lỗi dữ liệu đơn hàng", error: error.message });
+  }
+});
+
+// Xóa đơn hàng
+app.delete('/api/orders/:id', async (req, res) => {
+  try {
+    await Order.findByIdAndDelete(req.params.id);
+    res.json({ message: "Đã xóa đơn hàng" });
+  } catch (error) {
+    res.status(500).json({ message: "Lỗi khi xóa" });
+  }
+});
+
 // --- PHỤC VỤ GIAO DIỆN ADMIN ---
-
-// Phục vụ các file tĩnh (css, js, images) từ thư mục dist của admin
-app.use(express.static(adminDistPath));
-
 // Route cuối cùng để xử lý trang Admin (SPA)
 // Thay "/{*any}" bằng "*" để đúng chuẩn Express catch-all
 app.get("/{*any}", (req, res) => {
   res.sendFile(path.join(adminDistPath, "index.html"));
 });
+// Phục vụ các file tĩnh (css, js, images) từ thư mục dist của admin
+app.use(express.static(adminDistPath));
+
+
 
 // --- KẾT NỐI DATABASE & START SERVER ---
 mongoose.connect(process.env.MONGO_URI)

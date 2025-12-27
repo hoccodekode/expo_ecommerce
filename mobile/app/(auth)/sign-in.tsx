@@ -61,7 +61,7 @@ export default function LoginScreen() {
       
       <View style={styles.container}>
         {/* Logo */}
-        <Text style={styles.logo}>WindDental</Text>
+        <Text style={styles.logo}>WindFashion</Text>
 
         {/* Title */}
         <Text style={styles.titleText}>Đăng nhập</Text>
@@ -142,19 +142,19 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 26, paddingTop: 100, backgroundColor: "#E0F3F4" },
-  logo: { fontSize: 36, fontWeight: "800", alignSelf: "center", marginBottom: 40, color: "#47e608ff" },
-  titleText: { fontSize: 20, fontWeight: "600", color: '#331559', textAlign: "center" },
+  container: { flex: 1, padding: 26, paddingTop: 100, backgroundColor: "#f4e1c9ff" },
+  logo: { fontSize: 36, fontWeight: "800", alignSelf: "center", marginBottom: 40, color: "#cc7606ff" },
+  titleText: { fontSize: 20, fontWeight: "600", color: '#cc7606ff', textAlign: "center" },
   inputBox: { marginBottom: 16 },
   input: { borderWidth: 1, borderColor: "#ddd", borderRadius: 12, padding: 12, fontSize: 16, backgroundColor: "#fafafa" },
   forgot: { alignSelf: "flex-start", marginVertical: 10, fontSize: 14, color: "#7d7f87ff", fontWeight: "600" },
-  button: { backgroundColor: "#057893", paddingVertical: 14, borderRadius: 15, flex: 1 },
+  button: { backgroundColor: "#cc7606ff", paddingVertical: 14, borderRadius: 15, flex: 1 },
   buttonText: { textAlign: "center", color: "#fff", fontSize: 17, fontWeight: "600" },
   faceIdBox: { width: '20%', alignItems: 'center', justifyContent: 'center' },
   faceIdImage: { width: 48, height: 48, marginLeft: 10 },
   footer: { flexDirection: "row", alignItems: 'center', marginTop: 12 },
   footerRow: { flexDirection: "row", justifyContent: "center", marginTop: 24, gap: 6 },
-  register: { color: "#057893", fontWeight: "600" },
+  register: { color: "#cc7606ff", fontWeight: "600" },
   socialSection: { marginTop: 32 },
   socialText: { color: "#555", textAlign: "center", fontWeight: "600" },
   socialIcons: { flexDirection: "row", justifyContent: "center", marginTop: 12, gap: 20 },
