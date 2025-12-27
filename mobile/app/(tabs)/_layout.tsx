@@ -54,20 +54,41 @@ export default function TabLayout() {
 
       {/* 3. Giỏ hàng */}
       <Tabs.Screen
-        name="cart"
-        options={{
-          title: 'Giỏ hàng',
-          tabBarIcon: ({ color, focused }) => (
-            <View>
-              <Ionicons name={focused ? 'cart' : 'cart-outline'} size={24} color={color} />
-              {/* Badge số lượng sản phẩm giả lập */}
-              <View className="absolute -top-1 -right-2 bg-black rounded-full w-4 h-4 items-center justify-center">
-                <Text className="text-white text-[8px] font-bold">2</Text>
-              </View>
-            </View>
-          ),
-        }}
-      />
+  name="cart"
+  options={{
+    title: 'GIỎ HÀNG',
+    tabBarIcon: ({ color, focused }) => (
+      <View style={{ width: 24, height: 24 }}>
+        <Ionicons 
+          name={focused ? 'cart' : 'cart-outline'} 
+          size={24} 
+          color={color} 
+        />
+        {/* Phần Badge số lượng - Cần căn chỉnh absolute chính xác */}
+        <View style={{
+          position: 'absolute',
+          right: -6,
+          top: -3,
+          backgroundColor: 'black',
+          borderRadius: 8,
+          width: 16,
+          height: 16,
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1
+        }}>
+          <Text style={{ 
+            color: 'white', 
+            fontSize: 10, 
+            fontWeight: 'bold' 
+          }}>
+            2
+          </Text>
+        </View>
+      </View>
+    ),
+  }}
+/>
 
       {/* 4. Hồ sơ */}
       <Tabs.Screen

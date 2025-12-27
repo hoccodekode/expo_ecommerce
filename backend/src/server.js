@@ -171,26 +171,129 @@ app.post('/api/cart/add', async (req, res) => {
 // 2. API: Lấy giỏ hàng của một người dùng
 app.get('/api/cart/:clerkId', async (req, res) => {
   try {
-    const cart = await Cart.findOne({ clerkId: req.params.clerkId });
-    if (!cart) return res.status(200).json({ items: [] });
+    const clerkId = req.params.clerkId;
+    console.log("🔍 Đang tìm giỏ hàng cho clerkId:", clerkId);
+    
+    // Kiểm tra xem có bao nhiêu cart với clerkId này
+    const allCarts = await Cart.find({ clerkId });
+    console.log(`📦 Tìm thấy ${allCarts.length} giỏ hàng với clerkId: ${clerkId}`);
+    
+    if (allCarts.length > 1) {
+      console.log("⚠️ CẢNH BÁO: Có nhiều giỏ hàng với cùng clerkId!");
+      allCarts.forEach((cart, index) => {
+        console.log(`  Cart ${index + 1}: _id=${cart._id}, items=${cart.items.length}, createdAt=${cart.createdAt}`);
+      });
+    }
+    
+    // Lấy cart mới nhất (nếu có nhiều)
+    const cart = await Cart.findOne({ clerkId }).sort({ createdAt: -1 });
+    
+    if (!cart) {
+      console.log("✅ Không tìm thấy giỏ hàng, trả về giỏ hàng trống");
+      return res.status(200).json({ items: [] });
+    }
+    
+    console.log(`✅ Tìm thấy giỏ hàng: _id=${cart._id}, items=${cart.items.length}`);
+    console.log("📋 Chi tiết items:", JSON.stringify(cart.items, null, 2));
+    
     res.status(200).json(cart);
   } catch (error) {
-    res.status(500).json({ message: "Lỗi khi lấy giỏ hàng", error });
+    console.error("❌ Lỗi khi lấy giỏ hàng:", error);
+    res.status(500).json({ message: "Lỗi khi lấy giỏ hàng", error: error.message });
   }
 });
 
-// 3. API: Xóa sản phẩm khỏi giỏ hàng
+// 3. API: Cập nhật số lượng sản phẩm trong giỏ hàng
+app.put('/api/cart/update', async (req, res) => {
+  const { clerkId, productId, size, quantity } = req.body;
+  
+  if (!clerkId || !productId || !size || quantity === undefined) {
+    return res.status(400).json({ message: "Thiếu thông tin" });
+  }
+  
+  if (quantity < 1) {
+    return res.status(400).json({ message: "Số lượng phải lớn hơn 0" });
+  }
+
+  try {
+    let cart = await Cart.findOne({ clerkId });
+    if (cart) {
+      const productIdStr = String(productId);
+      const itemIndex = cart.items.findIndex(
+        p => String(p.productId) === productIdStr && p.size === size
+      );
+      
+      if (itemIndex > -1) {
+        cart.items[itemIndex].quantity = quantity;
+        cart = await cart.save();
+        res.status(200).json(cart);
+      } else {
+        res.status(404).json({ message: "Không tìm thấy sản phẩm trong giỏ hàng" });
+      }
+    } else {
+      res.status(404).json({ message: "Không tìm thấy giỏ hàng" });
+    }
+  } catch (error) {
+    console.error("Lỗi khi cập nhật số lượng:", error);
+    res.status(500).json({ message: "Lỗi khi cập nhật số lượng", error: error.message });
+  }
+});
+
+// 4. API: Xóa sản phẩm khỏi giỏ hàng
 app.delete('/api/cart/remove', async (req, res) => {
   const { clerkId, productId, size } = req.body;
   try {
     let cart = await Cart.findOne({ clerkId });
     if (cart) {
-      cart.items = cart.items.filter(item => !(item.productId == productId && item.size == size));
+      const productIdStr = String(productId);
+      cart.items = cart.items.filter(
+        item => !(String(item.productId) === productIdStr && item.size === size)
+      );
       await cart.save();
     }
     res.status(200).json(cart);
   } catch (error) {
     res.status(500).json({ message: "Lỗi khi xóa sản phẩm", error });
+  }
+});
+
+// 5. API: Xóa toàn bộ giỏ hàng
+app.delete('/api/cart/clear/:clerkId', async (req, res) => {
+  try {
+    const clerkId = req.params.clerkId;
+    console.log("🗑️ Đang xóa giỏ hàng cho clerkId:", clerkId);
+    
+    // Xóa tất cả cart với clerkId này (nếu có nhiều)
+    const result = await Cart.deleteMany({ clerkId });
+    console.log(`✅ Đã xóa ${result.deletedCount} giỏ hàng`);
+    
+    res.status(200).json({ 
+      message: "Đã xóa toàn bộ giỏ hàng", 
+      deletedCount: result.deletedCount 
+    });
+  } catch (error) {
+    console.error("❌ Lỗi khi xóa giỏ hàng:", error);
+    res.status(500).json({ message: "Lỗi khi xóa giỏ hàng", error: error.message });
+  }
+});
+
+// 6. API: Debug - Lấy tất cả cart của một user (để kiểm tra)
+app.get('/api/cart/debug/:clerkId', async (req, res) => {
+  try {
+    const carts = await Cart.find({ clerkId: req.params.clerkId });
+    res.status(200).json({ 
+      clerkId: req.params.clerkId,
+      totalCarts: carts.length,
+      carts: carts.map(cart => ({
+        _id: cart._id,
+        itemsCount: cart.items.length,
+        items: cart.items,
+        createdAt: cart.createdAt,
+        updatedAt: cart.updatedAt
+      }))
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Lỗi khi lấy danh sách giỏ hàng", error: error.message });
   }
 });
 // Route lấy toàn bộ đơn hàng
