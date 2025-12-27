@@ -14,24 +14,42 @@ export default function CartScreen() {
   const [address, setAddress] = useState('');
   const [showAddressInput, setShowAddressInput] = useState(false);
 
-  const fetchCart = async () => {
+  const fetchCart = async (forceRefresh = false) => {
     if (!user) return;
     setLoading(true);
     try {
-      const response = await fetch(`https://expo-ecommerce-wrd1.onrender.com/api/cart/${user.id}`);
-       console.log("UserID:", user.id);
+      // Thêm timestamp để tránh cache
+      const timestamp = forceRefresh ? `?t=${Date.now()}` : '';
+      const response = await fetch(`https://expo-ecommerce-wrd1.onrender.com/api/cart/${user.id}${timestamp}`, {
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
+      
+      console.log("🔍 Fetch cart - UserID:", user.id);
+      console.log("📡 Response status:", response.status);
        
       const contentType = response.headers.get("content-type");
       if (response.ok && contentType && contentType.includes("application/json")) {
         const data = await response.json();
-        console.log("Dữ liệu giỏ hàng nhận được:", data.items.length, "sản phẩm");
-      console.log("Chi tiết:", JSON.stringify(data.items, null, 2));
-        setCart(data);
+        console.log("✅ Dữ liệu giỏ hàng nhận được:", data.items?.length || 0, "sản phẩm");
+        console.log("📋 Chi tiết:", JSON.stringify(data.items || [], null, 2));
+        
+        // Đảm bảo luôn có items array
+        if (!data.items || data.items.length === 0) {
+          console.log("🔄 Giỏ hàng trống, set về empty");
+          setCart({ items: [] });
+        } else {
+          setCart(data);
+        }
       } else {
+        console.log("⚠️ Response không phải JSON hoặc lỗi, set giỏ hàng trống");
         setCart({ items: [] });
       }
     } catch (error) {
-      console.error("Lỗi fetch giỏ hàng:", error);
+      console.error("❌ Lỗi fetch giỏ hàng:", error);
       setCart({ items: [] });
     } finally {
       setLoading(false);
@@ -58,10 +76,14 @@ export default function CartScreen() {
       });
       
       if (response.ok) {
-        fetchCart();
+        // Force refresh sau khi cập nhật
+        setTimeout(() => {
+          fetchCart(true);
+        }, 300);
       } else {
         const errorData = await response.json();
         Alert.alert("Lỗi", errorData.message || "Không thể cập nhật số lượng");
+        fetchCart(true);
       }
     } catch (error) {
       Alert.alert("Lỗi", "Không thể cập nhật số lượng");
@@ -86,7 +108,9 @@ export default function CartScreen() {
                 body: JSON.stringify({ clerkId: user?.id, productId, size }),
               });
               if (response.ok) {
-                fetchCart();
+                setTimeout(() => {
+                  fetchCart(true);
+                }, 300);
               } else {
                 Alert.alert("Lỗi", "Không thể xóa sản phẩm");
               }
@@ -111,21 +135,40 @@ export default function CartScreen() {
           style: "destructive",
           onPress: async () => {
             try {
+              // Set giỏ hàng về empty ngay lập tức để UI phản hồi nhanh
+              setCart({ items: [] });
+              
               const response = await fetch(`https://expo-ecommerce-wrd1.onrender.com/api/cart/clear/${user?.id}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: {
+                  'Cache-Control': 'no-cache',
+                  'Pragma': 'no-cache'
+                }
               });
               
               if (response.ok) {
                 const data = await response.json();
-                console.log("✅ Đã xóa giỏ hàng:", data);
-                Alert.alert("Thành công", "Đã xóa toàn bộ giỏ hàng");
-                fetchCart();
+                console.log("✅ Đã xóa giỏ hàng từ server:", data);
+                console.log("🗑️ Số lượng cart đã xóa:", data.deletedCount);
+                
+                // Đợi một chút để đảm bảo server đã xóa xong, rồi fetch lại với force refresh
+                setTimeout(() => {
+                  fetchCart(true); // Force refresh với timestamp
+                }, 500);
+                
+                Alert.alert("Thành công", `Đã xóa ${data.deletedCount || 0} giỏ hàng`);
               } else {
-                Alert.alert("Lỗi", "Không thể xóa giỏ hàng");
+                const errorData = await response.json().catch(() => ({}));
+                console.error("❌ Lỗi khi xóa giỏ hàng:", errorData);
+                Alert.alert("Lỗi", errorData.message || "Không thể xóa giỏ hàng");
+                // Fetch lại để lấy dữ liệu thực tế
+                fetchCart(true);
               }
             } catch (error) {
-              console.error("Lỗi khi xóa giỏ hàng:", error);
+              console.error("❌ Lỗi khi xóa giỏ hàng:", error);
               Alert.alert("Lỗi", "Không thể xóa giỏ hàng");
+              // Fetch lại để lấy dữ liệu thực tế
+              fetchCart(true);
             }
           }
         }
@@ -185,7 +228,9 @@ export default function CartScreen() {
               onPress: () => {
                 setAddress('');
                 setShowAddressInput(false);
-                fetchCart();
+                setTimeout(() => {
+                  fetchCart(true);
+                }, 500);
               }
             }
           ]

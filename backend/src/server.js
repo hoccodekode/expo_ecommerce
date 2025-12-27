@@ -79,11 +79,70 @@ app.get('/api/products', async (req, res) => {
 // API tạo sản phẩm mới
 app.post('/api/products', async (req, res) => {
   try {
+    // Đảm bảo price được tính đúng
+    if (!req.body.price && req.body.originalPrice) {
+      req.body.price = req.body.discountPrice || req.body.originalPrice;
+    }
     const newProduct = new Product(req.body);
     await newProduct.save();
     res.status(201).json(newProduct);
   } catch (error) {
-    res.status(400).json({ message: "Lỗi khi tạo sản phẩm", error });
+    console.error("Lỗi khi tạo sản phẩm:", error);
+    res.status(400).json({ message: "Lỗi khi tạo sản phẩm", error: error.message });
+  }
+});
+
+// API lấy một sản phẩm theo ID
+app.get('/api/products/:id', async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      return res.status(404).json({ message: "Không tìm thấy sản phẩm" });
+    }
+    res.status(200).json(product);
+  } catch (error) {
+    res.status(500).json({ message: "Lỗi khi lấy sản phẩm", error: error.message });
+  }
+});
+
+// API cập nhật sản phẩm
+app.put('/api/products/:id', async (req, res) => {
+  try {
+    // Đảm bảo price được tính đúng
+    if (req.body.originalPrice || req.body.discountPrice) {
+      req.body.price = req.body.discountPrice || req.body.originalPrice;
+    }
+    
+    const updatedProduct = await Product.findByIdAndUpdate(
+      req.params.id,
+      { ...req.body, updatedAt: Date.now() },
+      { new: true, runValidators: true }
+    );
+    
+    if (!updatedProduct) {
+      return res.status(404).json({ message: "Không tìm thấy sản phẩm" });
+    }
+    
+    res.status(200).json(updatedProduct);
+  } catch (error) {
+    console.error("Lỗi khi cập nhật sản phẩm:", error);
+    res.status(400).json({ message: "Lỗi khi cập nhật sản phẩm", error: error.message });
+  }
+});
+
+// API xóa sản phẩm
+app.delete('/api/products/:id', async (req, res) => {
+  try {
+    const deletedProduct = await Product.findByIdAndDelete(req.params.id);
+    
+    if (!deletedProduct) {
+      return res.status(404).json({ message: "Không tìm thấy sản phẩm" });
+    }
+    
+    res.status(200).json({ message: "Đã xóa sản phẩm thành công", product: deletedProduct });
+  } catch (error) {
+    console.error("Lỗi khi xóa sản phẩm:", error);
+    res.status(500).json({ message: "Lỗi khi xóa sản phẩm", error: error.message });
   }
 });
 // Route Upload ảnh
@@ -263,13 +322,35 @@ app.delete('/api/cart/clear/:clerkId', async (req, res) => {
     const clerkId = req.params.clerkId;
     console.log("🗑️ Đang xóa giỏ hàng cho clerkId:", clerkId);
     
-    // Xóa tất cả cart với clerkId này (nếu có nhiều)
+    // Kiểm tra xem có bao nhiêu cart trước khi xóa
+    const cartsBefore = await Cart.find({ clerkId });
+    console.log(`📊 Tìm thấy ${cartsBefore.length} giỏ hàng trước khi xóa`);
+    
+    if (cartsBefore.length > 0) {
+      cartsBefore.forEach((cart, index) => {
+        console.log(`  Cart ${index + 1}: _id=${cart._id}, items=${cart.items.length}`);
+      });
+    }
+    
+    // Xóa TẤT CẢ cart với clerkId này (nếu có nhiều)
     const result = await Cart.deleteMany({ clerkId });
     console.log(`✅ Đã xóa ${result.deletedCount} giỏ hàng`);
     
+    // Kiểm tra lại sau khi xóa
+    const cartsAfter = await Cart.find({ clerkId });
+    console.log(`🔍 Kiểm tra lại: Còn ${cartsAfter.length} giỏ hàng sau khi xóa`);
+    
+    if (cartsAfter.length > 0) {
+      console.log("⚠️ CẢNH BÁO: Vẫn còn giỏ hàng sau khi xóa!");
+      cartsAfter.forEach((cart, index) => {
+        console.log(`  Cart còn lại ${index + 1}: _id=${cart._id}, items=${cart.items.length}`);
+      });
+    }
+    
     res.status(200).json({ 
       message: "Đã xóa toàn bộ giỏ hàng", 
-      deletedCount: result.deletedCount 
+      deletedCount: result.deletedCount,
+      remainingCarts: cartsAfter.length
     });
   } catch (error) {
     console.error("❌ Lỗi khi xóa giỏ hàng:", error);

@@ -10,6 +10,8 @@ import {
   LayoutDashboard,
   Upload,
   Loader2,
+  Edit2,
+  X,
 } from "lucide-react";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -55,12 +57,22 @@ export default function AdminPage() {
  
   const [formData, setFormData] = useState({
     name: "",
+    originalPrice: "",
+    discountPrice: "",
     price: "",
     description: "",
     image: "",
     category: "",
     stock: "",
+    brand: "",
+    size: "",
+    color: "",
+    tags: "",
+    isActive: true,
   });
+  
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   // Hàm lấy danh sách sản phẩm
   const fetchProducts = async () => {
@@ -94,11 +106,72 @@ useEffect(() => {
   loadAllData();
 }, []); // Chỉ chạy một lần khi load trang
 
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      originalPrice: "",
+      discountPrice: "",
+      price: "",
+      description: "",
+      image: "",
+      category: "",
+      stock: "",
+      brand: "",
+      size: "",
+      color: "",
+      tags: "",
+      isActive: true,
+    });
+    setImageFile(null);
+    setEditingProduct(null);
+    setIsEditMode(false);
+  };
+
+  const handleEdit = (product) => {
+    setEditingProduct(product);
+    setIsEditMode(true);
+    setFormData({
+      name: product.name || "",
+      originalPrice: product.originalPrice || product.price || "",
+      discountPrice: product.discountPrice || "",
+      price: product.price || "",
+      description: product.description || "",
+      image: product.image || "",
+      category: product.category || "",
+      stock: product.stock || "",
+      brand: product.brand || "",
+      size: Array.isArray(product.size) ? product.size.join(", ") : product.size || "",
+      color: Array.isArray(product.color) ? product.color.join(", ") : product.color || "",
+      tags: Array.isArray(product.tags) ? product.tags.join(", ") : product.tags || "",
+      isActive: product.isActive !== undefined ? product.isActive : true,
+    });
+    setImageFile(null);
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa sản phẩm này?")) return;
+    try {
+      const res = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        fetchProducts();
+        alert("Xóa sản phẩm thành công!");
+      } else {
+        const data = await res.json();
+        alert(data.message || "Lỗi khi xóa sản phẩm");
+      }
+    } catch (err) {
+      console.error("Lỗi khi xóa sản phẩm:", err);
+      alert("Lỗi khi xóa sản phẩm!");
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsUploading(true);
     try {
-      let finalImageUrl = "";
+      let finalImageUrl = formData.image;
+      
+      // Chỉ upload ảnh mới nếu có file mới
       if (imageFile) {
         const uploadData = new FormData();
         uploadData.append("image", imageFile);
@@ -110,26 +183,49 @@ useEffect(() => {
         finalImageUrl = data.imageUrl;
       }
 
-      const productToSave = { ...formData, image: finalImageUrl };
-      await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(productToSave),
-      });
+      // Xử lý các trường array
+      const productToSave = {
+        ...formData,
+        image: finalImageUrl,
+        originalPrice: Number(formData.originalPrice),
+        discountPrice: formData.discountPrice ? Number(formData.discountPrice) : undefined,
+        price: formData.discountPrice ? Number(formData.discountPrice) : Number(formData.originalPrice),
+        stock: Number(formData.stock),
+        size: formData.size ? formData.size.split(",").map(s => s.trim()).filter(s => s) : [],
+        color: formData.color ? formData.color.split(",").map(c => c.trim()).filter(c => c) : [],
+        tags: formData.tags ? formData.tags.split(",").map(t => t.trim()).filter(t => t) : [],
+        isActive: formData.isActive,
+      };
 
-      setFormData({
-        name: "",
-        price: "",
-        description: "",
-        image: "",
-        category: "",
-        stock: "",
-      });
-      setImageFile(null);
-      fetchProducts();
-      alert("Thêm sản phẩm thành công!");
+      if (isEditMode && editingProduct) {
+        // Cập nhật sản phẩm
+        const res = await fetch(`${API_URL}/${editingProduct._id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(productToSave),
+        });
+        
+        if (res.ok) {
+          alert("Cập nhật sản phẩm thành công!");
+          resetForm();
+          fetchProducts();
+        } else {
+          const data = await res.json();
+          alert(data.message || "Lỗi khi cập nhật sản phẩm!");
+        }
+      } else {
+        // Tạo sản phẩm mới
+        await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(productToSave),
+        });
+        alert("Thêm sản phẩm thành công!");
+        resetForm();
+        fetchProducts();
+      }
     } catch (err) {
-      console.error("Lỗi khi thêm sản phẩm:", err);
+      console.error("Lỗi khi lưu sản phẩm:", err);
       alert("Lỗi upload hoặc lưu dữ liệu!");
     } finally {
       setIsUploading(false);
@@ -244,16 +340,33 @@ useEffect(() => {
               </div>
             </div>
             <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 mb-8">
-              <h2 className="text-lg font-semibold mb-4 flex items-center text-gray-700">
-                <PlusCircle className="mr-2 text-green-500" size={18} /> Thêm
-                sản phẩm mới
-              </h2>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold flex items-center text-gray-700">
+                  {isEditMode ? (
+                    <>
+                      <Edit2 className="mr-2 text-blue-500" size={18} /> Chỉnh sửa sản phẩm
+                    </>
+                  ) : (
+                    <>
+                      <PlusCircle className="mr-2 text-green-500" size={18} /> Thêm sản phẩm mới
+                    </>
+                  )}
+                </h2>
+                {isEditMode && (
+                  <button
+                    onClick={resetForm}
+                    className="text-gray-500 hover:text-gray-700 flex items-center text-sm"
+                  >
+                    <X size={16} className="mr-1" /> Hủy
+                  </button>
+                )}
+              </div>
               <form
                 onSubmit={handleSubmit}
-                className="grid grid-cols-1 md:grid-cols-3 gap-4"
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
               >
                 <input
-                  placeholder="Tên sản phẩm"
+                  placeholder="Tên sản phẩm *"
                   value={formData.name}
                   onChange={(e) =>
                     setFormData({ ...formData, name: e.target.value })
@@ -262,35 +375,51 @@ useEffect(() => {
                   required
                 />
                 <input
-                  placeholder="Giá (VNĐ)"
+                  placeholder="Giá gốc (VNĐ) *"
                   type="number"
-                  value={formData.price}
+                  value={formData.originalPrice}
                   onChange={(e) =>
-                    setFormData({ ...formData, price: e.target.value })
+                    setFormData({ ...formData, originalPrice: e.target.value })
                   }
                   className="border border-gray-200 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                   required
                 />
-                <div className="relative border border-gray-200 p-2 rounded-lg bg-gray-50 flex items-center overflow-hidden">
-                  <Upload className="mr-2 text-gray-400" size={18} />
-                  <input
-                    type="file"
-                    onChange={(e) => setImageFile(e.target.files[0])}
-                    className="text-sm text-gray-500 file:mr-4 file:py-1 file:px-2 file:rounded-md file:border-0 file:bg-blue-50 file:text-blue-700 cursor-pointer w-full"
-                    required
-                  />
-                </div>
                 <input
-                  placeholder="Danh mục"
+                  placeholder="Giá giảm giá (VNĐ) - để trống nếu không giảm"
+                  type="number"
+                  value={formData.discountPrice}
+                  onChange={(e) =>
+                    setFormData({ ...formData, discountPrice: e.target.value })
+                  }
+                  className="border border-gray-200 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                />
+                <select
                   value={formData.category}
                   onChange={(e) =>
                     setFormData({ ...formData, category: e.target.value })
                   }
                   className="border border-gray-200 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                   required
+                >
+                  <option value="">Chọn thể loại *</option>
+                  <option value="Áo thun">Áo thun</option>
+                  <option value="Áo khoác">Áo khoác</option>
+                  <option value="Quần jean">Quần jean</option>
+                  <option value="Váy">Váy</option>
+                  <option value="Quần tây">Quần tây</option>
+                  <option value="Áo sơ mi">Áo sơ mi</option>
+                  <option value="Khác">Khác</option>
+                </select>
+                <input
+                  placeholder="Thương hiệu"
+                  value={formData.brand}
+                  onChange={(e) =>
+                    setFormData({ ...formData, brand: e.target.value })
+                  }
+                  className="border border-gray-200 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                 />
                 <input
-                  placeholder="Số lượng kho"
+                  placeholder="Số lượng kho *"
                   type="number"
                   value={formData.stock}
                   onChange={(e) =>
@@ -299,26 +428,82 @@ useEffect(() => {
                   className="border border-gray-200 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                   required
                 />
+                <input
+                  placeholder="Size (cách nhau bởi dấu phẩy, VD: S,M,L,XL)"
+                  value={formData.size}
+                  onChange={(e) =>
+                    setFormData({ ...formData, size: e.target.value })
+                  }
+                  className="border border-gray-200 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                />
+                <input
+                  placeholder="Màu sắc (cách nhau bởi dấu phẩy, VD: Đỏ,Xanh,Đen)"
+                  value={formData.color}
+                  onChange={(e) =>
+                    setFormData({ ...formData, color: e.target.value })
+                  }
+                  className="border border-gray-200 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                />
+                <input
+                  placeholder="Tags (cách nhau bởi dấu phẩy)"
+                  value={formData.tags}
+                  onChange={(e) =>
+                    setFormData({ ...formData, tags: e.target.value })
+                  }
+                  className="border border-gray-200 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                />
+                <div className="relative border border-gray-200 p-2 rounded-lg bg-gray-50 flex items-center overflow-hidden">
+                  <Upload className="mr-2 text-gray-400" size={18} />
+                  <input
+                    type="file"
+                    onChange={(e) => setImageFile(e.target.files[0])}
+                    className="text-sm text-gray-500 file:mr-4 file:py-1 file:px-2 file:rounded-md file:border-0 file:bg-blue-50 file:text-blue-700 cursor-pointer w-full"
+                    required={!isEditMode}
+                  />
+                  {isEditMode && formData.image && (
+                    <img src={formData.image} alt="Preview" className="w-10 h-10 object-cover rounded ml-2" />
+                  )}
+                </div>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="isActive"
+                    checked={formData.isActive}
+                    onChange={(e) =>
+                      setFormData({ ...formData, isActive: e.target.checked })
+                    }
+                    className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                  />
+                  <label htmlFor="isActive" className="ml-2 text-sm text-gray-700">
+                    Sản phẩm đang bán
+                  </label>
+                </div>
                 <button
                   type="submit"
                   disabled={isUploading}
-                  className="bg-blue-600 text-white font-bold py-2.5 rounded-lg hover:bg-blue-700 transition shadow-md flex justify-center items-center disabled:bg-blue-300"
+                  className={`font-bold py-2.5 rounded-lg transition shadow-md flex justify-center items-center disabled:opacity-50 ${
+                    isEditMode
+                      ? "bg-blue-600 hover:bg-blue-700 text-white"
+                      : "bg-green-600 hover:bg-green-700 text-white"
+                  }`}
                 >
                   {isUploading ? (
                     <>
                       <Loader2 className="animate-spin mr-2" /> Đang tải...
                     </>
+                  ) : isEditMode ? (
+                    "Cập nhật"
                   ) : (
                     "Thêm mới"
                   )}
                 </button>
                 <textarea
-                  placeholder="Mô tả..."
+                  placeholder="Mô tả sản phẩm *"
                   value={formData.description}
                   onChange={(e) =>
                     setFormData({ ...formData, description: e.target.value })
                   }
-                  className="border border-gray-200 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none col-span-1 md:col-span-3 min-h-[100px]"
+                  className="border border-gray-200 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none col-span-1 md:col-span-2 lg:col-span-3 min-h-[100px]"
                   required
                 />
               </form>
@@ -329,35 +514,98 @@ useEffect(() => {
                   <tr>
                     <th className="p-4">Hình ảnh</th>
                     <th className="p-4">Tên sản phẩm</th>
+                    <th className="p-4">Thể loại</th>
+                    <th className="p-4">Giá gốc</th>
                     <th className="p-4">Giá bán</th>
+                    <th className="p-4">Kho</th>
+                    <th className="p-4">Trạng thái</th>
                     <th className="p-4 text-center">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {products.map((p) => (
-                    <tr key={p._id} className="hover:bg-gray-50">
+                    <tr key={p._id} className="hover:bg-gray-50 transition-colors">
                       <td className="p-4">
                         <img
                           src={p.image}
                           className="w-14 h-14 object-cover rounded-lg shadow-sm border"
-                          alt=""
+                          alt={p.name}
                         />
                       </td>
-                      <td className="p-4 font-semibold text-gray-800">
-                        {p.name}
+                      <td className="p-4">
+                        <div className="font-semibold text-gray-800">{p.name}</div>
+                        {p.brand && (
+                          <div className="text-xs text-gray-500 mt-1">{p.brand}</div>
+                        )}
                       </td>
-                      <td className="p-4 font-bold text-blue-600">
-                        {Number(p.price).toLocaleString()}đ
+                      <td className="p-4">
+                        <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs font-medium">
+                          {p.category || "N/A"}
+                        </span>
                       </td>
-                      <td className="p-4 text-center">
-                        <button className="text-red-400 hover:text-red-600 p-2 rounded-full hover:bg-red-50">
-                          <Trash2 size={20} />
-                        </button>
+                      <td className="p-4">
+                        <div className="text-gray-600">
+                          {p.originalPrice ? Number(p.originalPrice).toLocaleString() : Number(p.price).toLocaleString()}đ
+                        </div>
+                        {p.discountPrice && p.discountPrice < p.originalPrice && (
+                          <div className="text-xs text-red-500 line-through">
+                            {Number(p.originalPrice).toLocaleString()}đ
+                          </div>
+                        )}
+                      </td>
+                      <td className="p-4">
+                        <div className="font-bold text-blue-600">
+                          {Number(p.price).toLocaleString()}đ
+                        </div>
+                        {p.discountPrice && p.discountPrice < p.originalPrice && (
+                          <div className="text-xs text-green-600 font-semibold">
+                            -{Math.round((1 - p.discountPrice / p.originalPrice) * 100)}%
+                          </div>
+                        )}
+                      </td>
+                      <td className="p-4">
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          p.stock > 10 ? "bg-green-100 text-green-700" :
+                          p.stock > 0 ? "bg-yellow-100 text-yellow-700" :
+                          "bg-red-100 text-red-700"
+                        }`}>
+                          {p.stock || 0}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          p.isActive !== false ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"
+                        }`}>
+                          {p.isActive !== false ? "Đang bán" : "Ngừng bán"}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        <div className="flex justify-center items-center gap-2">
+                          <button
+                            onClick={() => handleEdit(p)}
+                            className="text-blue-500 hover:text-blue-700 p-2 rounded-full hover:bg-blue-50 transition"
+                            title="Chỉnh sửa"
+                          >
+                            <Edit2 size={18} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(p._id)}
+                            className="text-red-400 hover:text-red-600 p-2 rounded-full hover:bg-red-50 transition"
+                            title="Xóa"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              {products.length === 0 && (
+                <div className="py-20 text-center text-gray-400 italic">
+                  Danh sách sản phẩm trống
+                </div>
+              )}
             </div>
           </div>
         )}

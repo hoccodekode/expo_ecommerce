@@ -46,11 +46,26 @@ const router = useRouter();
   // Lấy dữ liệu từ API thật của bạn
   const fetchProducts = async () => {
     try {
-      const response = await fetch('https://expo-ecommerce-wrd1.onrender.com/api/products');
+      const API_URL = 'https://expo-ecommerce-wrd1.onrender.com/api/products';
+      console.log("API URL:", API_URL);
+      
+      const response = await fetch(API_URL, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
       setProducts(data);
     } catch (error) {
       console.error("Lỗi fetch sản phẩm:", error);
+      // Set products về mảng rỗng nếu có lỗi
+      setProducts([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
