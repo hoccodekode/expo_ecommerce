@@ -34,6 +34,12 @@ export function createVNPayUrl(orderId, amount, orderInfo, ipAddr) {
   const createDate = formatDate(date);
   const expireDate = formatDate(new Date(date.getTime() + 15 * 60 * 1000)); // 15 minutes
 
+  console.log('📅 Date Info:', {
+    serverTime: date.toISOString(),
+    createDate,
+    expireDate
+  });
+
   let vnp_Params = {
     vnp_Version: '2.1.0',
     vnp_Command: 'pay',
@@ -50,25 +56,34 @@ export function createVNPayUrl(orderId, amount, orderInfo, ipAddr) {
     vnp_ExpireDate: String(expireDate)
   };
 
+  console.log('📦 Original Params:', JSON.stringify(vnp_Params, null, 2));
+
   // Sort params
   vnp_Params = sortObject(vnp_Params);
+
+  console.log('🔤 Sorted Params:', JSON.stringify(vnp_Params, null, 2));
 
   // Create signature data - VNPay requires NO URL ENCODING for signature
   const signDataArray = [];
   for (const key in vnp_Params) {
     if (vnp_Params.hasOwnProperty(key)) {
-      signDataArray.push(`${key}=${vnp_Params[key]}`);
+      const value = vnp_Params[key];
+      signDataArray.push(`${key}=${value}`);
+      console.log(`  ${key} = ${value} (type: ${typeof value}, length: ${String(value).length})`);
     }
   }
   const signData = signDataArray.join('&');
   
   console.log('🔐 Sign Data (no encoding):', signData);
+  console.log('📏 Sign Data Length:', signData.length);
+  console.log('🔑 Secret Key:', vnpayConfig.vnp_HashSecret);
   
   const hmac = crypto.createHmac('sha512', vnpayConfig.vnp_HashSecret);
   const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest('hex');
   vnp_Params['vnp_SecureHash'] = signed;
 
-  console.log('✅ Signature:', signed);
+  console.log('✅ Generated Signature:', signed);
+  console.log('📊 Signature Length:', signed.length);
 
   // Create payment URL - encode params for URL
   const urlParams = [];
@@ -80,6 +95,7 @@ export function createVNPayUrl(orderId, amount, orderInfo, ipAddr) {
   const paymentUrl = vnpayConfig.vnp_Url + '?' + urlParams.join('&');
   
   console.log('🔗 Payment URL:', paymentUrl);
+  console.log('=' .repeat(80));
   
   return paymentUrl;
 }
