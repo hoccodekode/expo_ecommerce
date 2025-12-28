@@ -53,20 +53,24 @@ export function createVNPayUrl(orderId, amount, orderInfo, ipAddr) {
   // Sort params
   vnp_Params = sortObject(vnp_Params);
 
-  // Create signature data string manually to ensure proper encoding
+  // Create signature data - VNPay requires NO URL ENCODING for signature
   const signDataArray = [];
   for (const key in vnp_Params) {
     if (vnp_Params.hasOwnProperty(key)) {
-      signDataArray.push(`${key}=${encodeURIComponent(vnp_Params[key])}`);
+      signDataArray.push(`${key}=${vnp_Params[key]}`);
     }
   }
   const signData = signDataArray.join('&');
+  
+  console.log('🔐 Sign Data (no encoding):', signData);
   
   const hmac = crypto.createHmac('sha512', vnpayConfig.vnp_HashSecret);
   const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest('hex');
   vnp_Params['vnp_SecureHash'] = signed;
 
-  // Create payment URL
+  console.log('✅ Signature:', signed);
+
+  // Create payment URL - encode params for URL
   const urlParams = [];
   for (const key in vnp_Params) {
     if (vnp_Params.hasOwnProperty(key)) {
@@ -75,8 +79,7 @@ export function createVNPayUrl(orderId, amount, orderInfo, ipAddr) {
   }
   const paymentUrl = vnpayConfig.vnp_Url + '?' + urlParams.join('&');
   
-  console.log('🔍 VNPay Params:', vnp_Params);
-  console.log('🔐 Sign Data:', signData);
+  console.log('🔗 Payment URL:', paymentUrl);
   
   return paymentUrl;
 }
@@ -94,11 +97,11 @@ export function verifyVNPaySignature(vnpParams) {
   // Sort params
   const sortedParams = sortObject(vnpParams);
   
-  // Create signature data string manually to match creation method
+  // Create signature data - NO URL ENCODING
   const signDataArray = [];
   for (const key in sortedParams) {
     if (sortedParams.hasOwnProperty(key)) {
-      signDataArray.push(`${key}=${encodeURIComponent(sortedParams[key])}`);
+      signDataArray.push(`${key}=${sortedParams[key]}`);
     }
   }
   const signData = signDataArray.join('&');
