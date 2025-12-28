@@ -229,7 +229,7 @@ export default function CartScreen() {
               body: JSON.stringify({
                 orderId: orderData._id,
                 amount: totalPrice,
-                orderInfo: `Thanh toán đơn hàng ${orderData._id}`
+                orderInfo: `Order ${orderData._id}`
               })
             });
 
