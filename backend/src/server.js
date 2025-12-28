@@ -714,10 +714,10 @@ app.get('/api/payment/vnpay/return', async (req, res) => {
       if (updatedOrder) {
         console.log('✅ Cập nhật đơn hàng thành công:', orderId);
         // Redirect to mobile app with success
-        return res.redirect(`exp://192.168.1.5:8081/--/payment-result?success=true&orderId=${orderId}&amount=${amount}`);
+        return res.redirect(`myapp://payment-result?success=true&orderId=${orderId}&amount=${amount}`);
       } else {
         console.error('❌ Không tìm thấy đơn hàng:', orderId);
-        return res.redirect(`exp://192.168.1.5:8081/--/payment-result?success=false&message=Order not found`);
+        return res.redirect(`myapp://payment-result?success=false&message=Order not found`);
       }
     } else {
       // Payment failed
@@ -731,11 +731,11 @@ app.get('/api/payment/vnpay/return', async (req, res) => {
       );
 
       console.log('❌ Thanh toán thất bại:', message);
-      return res.redirect(`exp://192.168.1.5:8081/--/payment-result?success=false&message=${encodeURIComponent(message)}`);
+      return res.redirect(`myapp://payment-result?success=false&message=${encodeURIComponent(message)}`);
     }
   } catch (error) {
     console.error('❌ Lỗi xử lý VNPay callback:', error);
-    return res.redirect(`exp://192.168.1.5:8081/--/payment-result?success=false&message=Server error`);
+    return res.redirect(`myapp://payment-result?success=false&message=Server error`);
   }
 });
 
