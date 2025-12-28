@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import { upload } from './config/cloudinary.js';
+import { createVNPayUrl, verifyVNPaySignature, getVNPayResponseMessage } from './config/vnpay.js';
 // Import Models
 import User from './models/User.js';
 import Product from './models/Product.js';
@@ -563,14 +564,18 @@ app.get('/api/orders', async (req, res) => {
 // 2. Thêm Route POST để xử lý tạo đơn hàng
 app.post('/api/orders', async (req, res) => {
   try {
-    const { clerkId, items, totalAmount, address, status } = req.body;
+    const { clerkId, items, totalAmount, address, status, paymentMethod, discountCode, discountAmount } = req.body;
     
     const newOrder = new Order({
       clerkId,
       items,
       totalAmount,
       address,
-      status: status || 'Chờ xử lý'
+      status: status || 'Chờ xử lý',
+      paymentMethod: paymentMethod || 'cash',
+      paymentStatus: 'pending',
+      discountCode,
+      discountAmount: discountAmount || 0
     });
 
     const savedOrder = await newOrder.save();
@@ -612,6 +617,108 @@ app.delete('/api/orders/:id', async (req, res) => {
     res.status(500).json({ message: "Lỗi khi xóa" });
   }
 });
+
+// --- VNPAY PAYMENT ROUTES ---
+
+// 1. Create VNPay payment URL
+app.post('/api/payment/vnpay/create', async (req, res) => {
+  try {
+    const { orderId, amount, orderInfo } = req.body;
+    
+    if (!orderId || !amount) {
+      return res.status(400).json({ message: 'Thiếu thông tin thanh toán' });
+    }
+
+    // Get client IP
+    const ipAddr = req.headers['x-forwarded-for'] || 
+                   req.connection.remoteAddress || 
+                   req.socket.remoteAddress ||
+                   '127.0.0.1';
+
+    // Create payment URL
+    const paymentUrl = createVNPayUrl(
+      orderId,
+      amount,
+      orderInfo || `Thanh toán đơn hàng ${orderId}`,
+      ipAddr
+    );
+
+    console.log('✅ Tạo VNPay URL thành công cho đơn hàng:', orderId);
+    res.status(200).json({ paymentUrl });
+  } catch (error) {
+    console.error('❌ Lỗi tạo VNPay URL:', error);
+    res.status(500).json({ message: 'Lỗi tạo link thanh toán', error: error.message });
+  }
+});
+
+// 2. Handle VNPay return callback
+app.get('/api/payment/vnpay/return', async (req, res) => {
+  try {
+    const vnpParams = req.query;
+    
+    console.log('📥 VNPay callback nhận được:', vnpParams);
+
+    // Verify signature
+    const isValid = verifyVNPaySignature(vnpParams);
+    
+    if (!isValid) {
+      console.error('❌ Chữ ký VNPay không hợp lệ');
+      return res.redirect(`exp://192.168.1.5:8081/--/payment-result?success=false&message=Invalid signature`);
+    }
+
+    const orderId = vnpParams.vnp_TxnRef;
+    const responseCode = vnpParams.vnp_ResponseCode;
+    const transactionId = vnpParams.vnp_TransactionNo;
+    const amount = vnpParams.vnp_Amount / 100; // Convert back from VNPay format
+
+    console.log('💳 Thông tin thanh toán:', {
+      orderId,
+      responseCode,
+      transactionId,
+      amount
+    });
+
+    // Update order based on payment result
+    if (responseCode === '00') {
+      // Payment successful
+      const updatedOrder = await Order.findByIdAndUpdate(
+        orderId,
+        {
+          paymentStatus: 'paid',
+          vnpayTransactionId: transactionId,
+          status: 'Chờ xử lý' // Order confirmed after payment
+        },
+        { new: true }
+      );
+
+      if (updatedOrder) {
+        console.log('✅ Cập nhật đơn hàng thành công:', orderId);
+        // Redirect to mobile app with success
+        return res.redirect(`exp://192.168.1.5:8081/--/payment-result?success=true&orderId=${orderId}&amount=${amount}`);
+      } else {
+        console.error('❌ Không tìm thấy đơn hàng:', orderId);
+        return res.redirect(`exp://192.168.1.5:8081/--/payment-result?success=false&message=Order not found`);
+      }
+    } else {
+      // Payment failed
+      const message = getVNPayResponseMessage(responseCode);
+      await Order.findByIdAndUpdate(
+        orderId,
+        {
+          paymentStatus: 'failed',
+          status: 'Đã hủy'
+        }
+      );
+
+      console.log('❌ Thanh toán thất bại:', message);
+      return res.redirect(`exp://192.168.1.5:8081/--/payment-result?success=false&message=${encodeURIComponent(message)}`);
+    }
+  } catch (error) {
+    console.error('❌ Lỗi xử lý VNPay callback:', error);
+    return res.redirect(`exp://192.168.1.5:8081/--/payment-result?success=false&message=Server error`);
+  }
+});
+
 
 // --- PHỤC VỤ GIAO DIỆN ADMIN ---
 // Route cuối cùng để xử lý trang Admin (SPA)

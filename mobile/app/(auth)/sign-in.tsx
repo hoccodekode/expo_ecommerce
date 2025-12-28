@@ -90,7 +90,7 @@ export default function LoginScreen() {
         </View>
 
         {/* Quên mật khẩu */}
-        <TouchableOpacity onPress={() => Alert.alert("Thông báo", "Tính năng này đang cập nhật")}>
+        <TouchableOpacity onPress={() => router.push('/(auth)/forgot-password')}>
           <Text style={styles.forgot}>Quên mật khẩu?</Text>
         </TouchableOpacity>
 

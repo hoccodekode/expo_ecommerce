@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, Image, TouchableOpacity, ActivityIndicator, StyleSheet, Alert, TextInput, ScrollView } from 'react-native';
+import { View, Text, FlatList, Image, TouchableOpacity, ActivityIndicator, StyleSheet, Alert, TextInput, ScrollView, Linking } from 'react-native';
 import { useUser } from '@clerk/clerk-expo';
 import { useIsFocused } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -200,6 +200,7 @@ export default function CartScreen() {
 
     setCheckingOut(true);
     try {
+      // Create order first
       const response = await fetch('https://expo-ecommerce-wrd1.onrender.com/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -208,7 +209,7 @@ export default function CartScreen() {
           items: cart.items,
           totalAmount: totalPrice,
           address: address.trim(),
-          status: 'Chờ xử lý',
+          status: paymentMethod === 'vnpay' ? 'Chờ thanh toán' : 'Chờ xử lý',
           paymentMethod: paymentMethod,
           discountCode: appliedDiscount?.code || null,
           discountAmount: discountAmount
@@ -217,36 +218,84 @@ export default function CartScreen() {
 
       if (response.ok) {
         const orderData = await response.json();
+        console.log("✅ Đã tạo đơn hàng:", orderData._id);
         
-        // Xóa giỏ hàng sau khi thanh toán thành công
-        try {
-          const clearResponse = await fetch(`https://expo-ecommerce-wrd1.onrender.com/api/cart/clear/${user?.id}`, {
-            method: 'DELETE'
-          });
-          if (clearResponse.ok) {
-            const clearData = await clearResponse.json();
-            console.log("✅ Đã xóa giỏ hàng sau thanh toán:", clearData);
-          }
-        } catch (clearError) {
-          console.error("Lỗi khi xóa giỏ hàng:", clearError);
-        }
+        // If VNPay payment, create payment URL and open WebView
+        if (paymentMethod === 'vnpay') {
+          try {
+            const paymentResponse = await fetch('https://expo-ecommerce-wrd1.onrender.com/api/payment/vnpay/create', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                orderId: orderData._id,
+                amount: totalPrice,
+                orderInfo: `Thanh toán đơn hàng ${orderData._id}`
+              })
+            });
 
-        Alert.alert(
-          "Thanh toán thành công!",
-          `Đơn hàng của bạn đã được tạo.\nTổng tiền: ${totalPrice.toLocaleString()} đ\n\nĐịa chỉ: ${address}`,
-          [
-            {
+            if (paymentResponse.ok) {
+              const { paymentUrl } = await paymentResponse.json();
+              console.log("✅ VNPay URL:", paymentUrl);
+              
+              // Open payment URL in browser (will redirect back to app after payment)
+              await Linking.openURL(paymentUrl);
+              
+              // Clear cart after opening payment
+              try {
+                await fetch(`https://expo-ecommerce-wrd1.onrender.com/api/cart/clear/${user?.id}`, {
+                  method: 'DELETE'
+                });
+              } catch (clearError) {
+                console.error("Lỗi khi xóa giỏ hàng:", clearError);
+              }
+
+              Alert.alert(
+                "Chuyển đến thanh toán",
+                "Vui lòng hoàn tất thanh toán trên trang VNPay",
+                [{
+                  text: "OK",
+                  onPress: () => {
+                    setAddress('');
+                    setShowAddressInput(false);
+                    setTimeout(() => fetchCart(true), 500);
+                  }
+                }]
+              );
+            } else {
+              Alert.alert("Lỗi", "Không thể tạo link thanh toán VNPay");
+            }
+          } catch (paymentError) {
+            console.error("Lỗi tạo VNPay URL:", paymentError);
+            Alert.alert("Lỗi", "Không thể kết nối đến VNPay");
+          }
+        } else {
+          // For other payment methods (cash, momo, bank)
+          // Clear cart after successful order creation
+          try {
+            const clearResponse = await fetch(`https://expo-ecommerce-wrd1.onrender.com/api/cart/clear/${user?.id}`, {
+              method: 'DELETE'
+            });
+            if (clearResponse.ok) {
+              const clearData = await clearResponse.json();
+              console.log("✅ Đã xóa giỏ hàng sau thanh toán:", clearData);
+            }
+          } catch (clearError) {
+            console.error("Lỗi khi xóa giỏ hàng:", clearError);
+          }
+
+          Alert.alert(
+            "Thanh toán thành công!",
+            `Đơn hàng của bạn đã được tạo.\nTổng tiền: ${totalPrice.toLocaleString()} đ\n\nĐịa chỉ: ${address}`,
+            [{
               text: "OK",
               onPress: () => {
                 setAddress('');
                 setShowAddressInput(false);
-                setTimeout(() => {
-                  fetchCart(true);
-                }, 500);
+                setTimeout(() => fetchCart(true), 500);
               }
-            }
-          ]
-        );
+            }]
+          );
+        }
       } else {
         const errorData = await response.json();
         Alert.alert("Lỗi", errorData.message || "Không thể tạo đơn hàng");
@@ -439,6 +488,16 @@ export default function CartScreen() {
                 <Ionicons name="cash-outline" size={24} color={paymentMethod === 'cash' ? '#000' : '#666'} />
                 <Text style={[styles.paymentText, paymentMethod === 'cash' && styles.paymentTextActive]}>
                   Tiền mặt
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.paymentMethod, paymentMethod === 'vnpay' && styles.paymentMethodActive]}
+                onPress={() => setPaymentMethod('vnpay')}
+              >
+                <Ionicons name="card-outline" size={24} color={paymentMethod === 'vnpay' ? '#000' : '#666'} />
+                <Text style={[styles.paymentText, paymentMethod === 'vnpay' && styles.paymentTextActive]}>
+                  VNPay
                 </Text>
               </TouchableOpacity>
 

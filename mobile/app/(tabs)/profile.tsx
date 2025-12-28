@@ -16,11 +16,17 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface Order {
   _id: string;
+  clerkId: string;
   items: any[];
   totalAmount: number;
   status: string;
   createdAt: string;
   address: string;
+  paymentMethod?: string;
+  paymentStatus?: string;
+  vnpayTransactionId?: string;
+  discountCode?: string;
+  discountAmount?: number;
 }
 
 export default function ProfileScreen() {
@@ -30,6 +36,7 @@ export default function ProfileScreen() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
     fetchOrders();
@@ -59,8 +66,15 @@ export default function ProfileScreen() {
   };
 
   const handleLogout = async () => {
-    await signOut();
-    router.replace('/(auth)/sign-in');
+    try {
+      setLoggingOut(true);
+      await signOut();
+      router.replace('/(auth)/sign-in');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    } finally {
+      setLoggingOut(false);
+    }
   };
 
   // Calculate order statistics
@@ -235,9 +249,19 @@ export default function ProfileScreen() {
         </View>
 
         {/* Logout Button */}
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={20} color="#EF4444" />
-          <Text style={styles.logoutText}>Đăng xuất</Text>
+        <TouchableOpacity 
+          style={[styles.logoutButton, loggingOut && { opacity: 0.6 }]} 
+          onPress={handleLogout}
+          disabled={loggingOut}
+        >
+          {loggingOut ? (
+            <ActivityIndicator size="small" color="#EF4444" />
+          ) : (
+            <>
+              <Ionicons name="log-out-outline" size={20} color="#EF4444" />
+              <Text style={styles.logoutText}>Đăng xuất</Text>
+            </>
+          )}
         </TouchableOpacity>
 
         <View style={{ height: 40 }} />
