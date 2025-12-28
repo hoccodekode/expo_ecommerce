@@ -683,7 +683,7 @@ app.get('/api/payment/vnpay/return', async (req, res) => {
     
     if (!isValid) {
       console.error('❌ Chữ ký VNPay không hợp lệ');
-      return res.send(createRedirectHTML('myapp://payment-result?success=false&message=Invalid+signature'));
+      return res.send(createRedirectHTML('Chữ ký không hợp lệ. Vui lòng thử lại.', false));
     }
 
     const orderId = vnpParams.vnp_TxnRef;
@@ -713,11 +713,10 @@ app.get('/api/payment/vnpay/return', async (req, res) => {
 
       if (updatedOrder) {
         console.log('✅ Cập nhật đơn hàng thành công:', orderId);
-        // Return HTML that opens the app
-        return res.send(createRedirectHTML(`myapp://payment-result?success=true&orderId=${orderId}&amount=${amount}`));
+        return res.send(createRedirectHTML(`Đơn hàng của bạn đã được thanh toán thành công!<br>Số tiền: ${amount.toLocaleString()} đ`, true));
       } else {
         console.error('❌ Không tìm thấy đơn hàng:', orderId);
-        return res.send(createRedirectHTML('myapp://payment-result?success=false&message=Order+not+found'));
+        return res.send(createRedirectHTML('Không tìm thấy đơn hàng. Vui lòng liên hệ hỗ trợ.', false));
       }
     } else {
       // Payment failed
@@ -731,23 +730,23 @@ app.get('/api/payment/vnpay/return', async (req, res) => {
       );
 
       console.log('❌ Thanh toán thất bại:', message);
-      return res.send(createRedirectHTML(`myapp://payment-result?success=false&message=${encodeURIComponent(message)}`));
+      return res.send(createRedirectHTML(message, false));
     }
   } catch (error) {
     console.error('❌ Lỗi xử lý VNPay callback:', error);
-    return res.send(createRedirectHTML('myapp://payment-result?success=false&message=Server+error'));
+    return res.send(createRedirectHTML('Lỗi hệ thống. Vui lòng thử lại sau.', false));
   }
 });
 
-// Helper function to create redirect HTML for deep linking
-function createRedirectHTML(deepLink) {
+// Helper function to create success/failure page
+function createRedirectHTML(message, isSuccess) {
   return `
     <!DOCTYPE html>
     <html>
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Đang chuyển hướng...</title>
+      <title>${isSuccess ? 'Thanh toán thành công' : 'Thanh toán thất bại'}</title>
       <style>
         body {
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -757,8 +756,9 @@ function createRedirectHTML(deepLink) {
           justify-content: center;
           min-height: 100vh;
           margin: 0;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: ${isSuccess ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'};
           color: white;
+          padding: 20px;
         }
         .container {
           text-align: center;
@@ -768,50 +768,37 @@ function createRedirectHTML(deepLink) {
           backdrop-filter: blur(10px);
           max-width: 400px;
         }
-        .spinner {
-          border: 4px solid rgba(255, 255, 255, 0.3);
-          border-radius: 50%;
-          border-top: 4px solid white;
-          width: 40px;
-          height: 40px;
-          animation: spin 1s linear infinite;
-          margin: 20px auto;
+        .icon {
+          font-size: 80px;
+          margin-bottom: 20px;
         }
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
+        .title {
+          font-size: 24px;
+          font-weight: bold;
+          margin-bottom: 16px;
         }
         .message {
-          margin-top: 1rem;
-          font-size: 1.1rem;
+          font-size: 16px;
+          line-height: 1.6;
+          margin-bottom: 24px;
         }
-        .manual-link {
-          margin-top: 2rem;
-          padding: 12px 24px;
-          background: white;
-          color: #667eea;
-          text-decoration: none;
-          border-radius: 8px;
-          font-weight: bold;
-          display: inline-block;
+        .instruction {
+          background: rgba(255, 255, 255, 0.2);
+          padding: 16px;
+          border-radius: 12px;
+          font-size: 14px;
         }
       </style>
     </head>
     <body>
       <div class="container">
-        <div class="spinner"></div>
-        <div class="message">Đang quay về ứng dụng...</div>
-        <a href="${deepLink}" class="manual-link">Nhấn vào đây nếu không tự động chuyển</a>
+        <div class="icon">${isSuccess ? '✅' : '❌'}</div>
+        <div class="title">${isSuccess ? 'Thanh toán thành công!' : 'Thanh toán thất bại'}</div>
+        <div class="message">${message}</div>
+        <div class="instruction">
+          ${isSuccess ? '👉 Vui lòng quay lại ứng dụng để tiếp tục' : '👉 Vui lòng quay lại ứng dụng và thử lại'}
+        </div>
       </div>
-      <script>
-        // Try to open the app immediately
-        window.location.href = '${deepLink}';
-        
-        // Fallback: try again after a short delay
-        setTimeout(function() {
-          window.location.href = '${deepLink}';
-        }, 500);
-      </script>
     </body>
     </html>
   `;
