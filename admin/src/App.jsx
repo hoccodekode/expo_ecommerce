@@ -405,9 +405,9 @@ useEffect(() => {
             </button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-gray-500">
-            <p>Tài khoản mặc định:</p>
-            <p className="font-mono text-xs mt-1">admin@gmail.com / 123456</p>
+          <div className="mt-6 text-center">
+            <p className="text-gray-500 mb-2">Tài khoản mặc định:</p>
+            <p className="font-mono text-2xl font-bold text-gray-800">admin@gmail.com / 123456</p>
           </div>
         </div>
       </div>
