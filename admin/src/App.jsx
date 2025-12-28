@@ -39,6 +39,15 @@ export default function AdminPage() {
   const [paymentFilter, setPaymentFilter] = useState('all'); // all, paid, pending, failed
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
+  
+  // Authentication state
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return localStorage.getItem('adminAuthenticated') === 'true';
+  });
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+
 
   // 3. Hàm lấy danh sách đơn hàng
   const fetchOrders = async () => {
@@ -124,6 +133,33 @@ export default function AdminPage() {
       console.error("Lỗi fetch users:", err);
     }
   };
+
+  // Login handler
+  const handleLogin = (e) => {
+    e.preventDefault();
+    setLoginError('');
+    
+    // Hardcoded credentials
+    const ADMIN_EMAIL = 'admin@gmail.com';
+    const ADMIN_PASSWORD = '123456';
+    
+    if (loginEmail === ADMIN_EMAIL && loginPassword === ADMIN_PASSWORD) {
+      setIsAuthenticated(true);
+      localStorage.setItem('adminAuthenticated', 'true');
+      setLoginEmail('');
+      setLoginPassword('');
+    } else {
+      setLoginError('Email hoặc mật khẩu không đúng!');
+    }
+  };
+
+  // Logout handler
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    localStorage.removeItem('adminAuthenticated');
+    setActiveTab('dashboard');
+  };
+
 
   // Hàm xóa người dùng
   const handleDeleteUser = async (userId) => {
@@ -313,6 +349,71 @@ useEffect(() => {
     }
   };
 
+  // Show login page if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
+          <div className="text-center mb-8">
+            <div className="inline-block p-4 bg-blue-100 rounded-full mb-4">
+              <Users className="text-blue-600" size={48} />
+            </div>
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">Admin Login</h1>
+            <p className="text-gray-500">Đăng nhập để quản lý hệ thống</p>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Email
+              </label>
+              <input
+                type="email"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+                placeholder="admin@gmail.com"
+                required
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Mật khẩu
+              </label>
+              <input
+                type="password"
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+                placeholder="••••••"
+                required
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+              />
+            </div>
+
+            {loginError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                {loginError}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition-colors shadow-lg hover:shadow-xl"
+            >
+              Đăng nhập
+            </button>
+          </form>
+
+          <div className="mt-6 text-center text-sm text-gray-500">
+            <p>Tài khoản mặc định:</p>
+            <p className="font-mono text-xs mt-1">admin@gmail.com / 123456</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#f1f4f6] flex">
       {/* SIDEBAR */}
@@ -372,6 +473,17 @@ useEffect(() => {
             <Settings className="mr-3" size={20} /> Cài đặt
           </button>
         </nav>
+        
+        {/* Logout Button */}
+        <div className="p-4 border-t border-gray-700">
+          <button
+            onClick={handleLogout}
+            className="flex items-center w-full p-3 rounded-lg bg-red-600 hover:bg-red-700 text-white transition"
+          >
+            <X className="mr-3" size={20} /> Đăng xuất
+          </button>
+        </div>
+        
         <div className="p-4 border-t border-gray-700 text-xs text-center text-gray-500 italic">
           v1.0.0 - 2025
         </div>
