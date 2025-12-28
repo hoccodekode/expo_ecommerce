@@ -4,7 +4,7 @@ import querystring from 'querystring';
 // VNPay Configuration
 export const vnpayConfig = {
   vnp_TmnCode: 'X53UBDF2',
-  vnp_HashSecret: 'H7C1GEAXW97BR5PQAJQJ55FN821MPAA6',
+  vnp_HashSecret: 'MBAGHBDGM6JFK0QCJQH0R55GAK9JKOOX',
   vnp_Url: 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html',
   vnp_ReturnUrl: 'https://expo-ecommerce-wrd1.onrender.com/api/payment/vnpay/return'
 };
