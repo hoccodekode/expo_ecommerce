@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import OrderDetailModal from "./OrderDetailModal";
 import UserDetailModal from "./UserDetailModal";
+import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+
 
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -24,7 +26,7 @@ const USERS_URL = `${BASE_URL}/api/users`;
 
 export default function AdminPage() {
   // --- TẤT CẢ STATE PHẢI NẰM TRONG NÀY ---
-  const [activeTab, setActiveTab] = useState("products");
+  const [activeTab, setActiveTab] = useState("dashboard");
   const [products, setProducts] = useState([]);
   const [users, setUsers] = useState([]); // Đã chuyển vào trong
   const [imageFile, setImageFile] = useState(null);
@@ -528,6 +530,79 @@ useEffect(() => {
                     </span>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* Order Statistics Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              {/* Bar Chart - Orders by Status */}
+              <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+                <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                  <ShoppingBag className="mr-2 text-blue-600" size={20} />
+                  Thống kê đơn hàng theo trạng thái
+                </h2>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={[
+                    { name: 'Chờ xử lý', value: orders.filter(o => o.status === "Chờ xử lý").length, fill: '#f97316' },
+                    { name: 'Đang giao', value: orders.filter(o => o.status === "Đang giao").length, fill: '#3b82f6' },
+                    { name: 'Hoàn thành', value: orders.filter(o => o.status === "Hoàn thành").length, fill: '#22c55e' },
+                    { name: 'Đã hủy', value: orders.filter(o => o.status === "Đã hủy").length, fill: '#ef4444' }
+                  ]}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                    <YAxis tick={{ fontSize: 12 }} />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
+                      labelStyle={{ fontWeight: 'bold' }}
+                    />
+                    <Bar dataKey="value" radius={[8, 8, 0, 0]}>
+                      {[
+                        { name: 'Chờ xử lý', value: orders.filter(o => o.status === "Chờ xử lý").length, fill: '#f97316' },
+                        { name: 'Đang giao', value: orders.filter(o => o.status === "Đang giao").length, fill: '#3b82f6' },
+                        { name: 'Hoàn thành', value: orders.filter(o => o.status === "Hoàn thành").length, fill: '#22c55e' },
+                        { name: 'Đã hủy', value: orders.filter(o => o.status === "Đã hủy").length, fill: '#ef4444' }
+                      ].map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Pie Chart - Payment Status */}
+              <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+                <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                  <DollarSign className="mr-2 text-blue-600" size={20} />
+                  Trạng thái thanh toán
+                </h2>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={[
+                        { name: 'Đã thanh toán', value: orders.filter(o => o.paymentStatus === "paid").length, fill: '#22c55e' },
+                        { name: 'Chờ thanh toán', value: orders.filter(o => o.paymentStatus === "pending").length, fill: '#f97316' },
+                        { name: 'Thất bại', value: orders.filter(o => o.paymentStatus === "failed").length, fill: '#ef4444' }
+                      ]}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={100}
+                      dataKey="value"
+                    >
+                      {[
+                        { name: 'Đã thanh toán', value: orders.filter(o => o.paymentStatus === "paid").length, fill: '#22c55e' },
+                        { name: 'Chờ thanh toán', value: orders.filter(o => o.paymentStatus === "pending").length, fill: '#f97316' },
+                        { name: 'Thất bại', value: orders.filter(o => o.paymentStatus === "failed").length, fill: '#ef4444' }
+                      ].map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
             </div>
 
