@@ -31,6 +31,7 @@ export default function AdminPage() {
 
   // 2. Thêm State vào trong AdminPage()
   const [orders, setOrders] = useState([]);
+  const [paymentFilter, setPaymentFilter] = useState('all'); // all, paid, pending, failed
 
   // 3. Hàm lấy danh sách đơn hàng
   const fetchOrders = async () => {
@@ -897,13 +898,57 @@ useEffect(() => {
         {/* TAB: ĐƠN HÀNG */}
         {activeTab === "orders" && (
           <div className="animate-in fade-in duration-500">
-            <div className="flex justify-between items-center mb-8 text-gray-800">
+            <div className="flex justify-between items-center mb-6 text-gray-800">
               <h1 className="text-2xl font-bold flex items-center">
                 <Package className="mr-2 text-blue-600" /> Quản lý đơn hàng
               </h1>
               <div className="text-sm opacity-60">
                 Tổng cộng: {orders.length} đơn hàng
               </div>
+            </div>
+
+            {/* Payment Status Filter */}
+            <div className="flex gap-2 mb-6">
+              <button
+                onClick={() => setPaymentFilter('all')}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                  paymentFilter === 'all'
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                Tất cả ({orders.length})
+              </button>
+              <button
+                onClick={() => setPaymentFilter('paid')}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                  paymentFilter === 'paid'
+                    ? 'bg-green-600 text-white shadow-md'
+                    : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                Đã thanh toán ({orders.filter(o => o.paymentStatus === 'paid').length})
+              </button>
+              <button
+                onClick={() => setPaymentFilter('pending')}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                  paymentFilter === 'pending'
+                    ? 'bg-orange-600 text-white shadow-md'
+                    : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                Chờ thanh toán ({orders.filter(o => o.paymentStatus === 'pending').length})
+              </button>
+              <button
+                onClick={() => setPaymentFilter('failed')}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                  paymentFilter === 'failed'
+                    ? 'bg-red-600 text-white shadow-md'
+                    : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                Thất bại ({orders.filter(o => o.paymentStatus === 'failed').length})
+              </button>
             </div>
 
             <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
@@ -914,12 +959,18 @@ useEffect(() => {
                     <th className="p-4">Khách hàng</th>
                     <th className="p-4">Sản phẩm</th>
                     <th className="p-4">Tổng tiền</th>
+                    <th className="p-4">Thanh toán</th>
                     <th className="p-4">Trạng thái</th>
                     <th className="p-4 text-center">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {orders.map((order) => (
+                  {orders
+                    .filter(order => {
+                      if (paymentFilter === 'all') return true;
+                      return order.paymentStatus === paymentFilter;
+                    })
+                    .map((order) => (
                     <tr
                       key={order._id}
                       className="hover:bg-gray-50 transition-colors"
@@ -944,6 +995,17 @@ useEffect(() => {
                       </td>
                       <td className="p-4 font-bold text-gray-800">
                         {order.totalAmount?.toLocaleString()}đ
+                      </td>
+                      <td className="p-4">
+                        <span className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
+                          order.paymentStatus === 'paid' ? 'bg-green-100 text-green-700' :
+                          order.paymentStatus === 'pending' ? 'bg-orange-100 text-orange-700' :
+                          'bg-red-100 text-red-700'
+                        }`}>
+                          {order.paymentStatus === 'paid' ? 'Đã thanh toán' :
+                           order.paymentStatus === 'pending' ? 'Chờ thanh toán' :
+                           'Thất bại'}
+                        </span>
                       </td>
                       <td className="p-4">
                         <select

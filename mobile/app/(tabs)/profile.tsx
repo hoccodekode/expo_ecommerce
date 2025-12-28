@@ -193,6 +193,21 @@ export default function ProfileScreen() {
                     <Text style={styles.orderPrice}>{order.totalAmount.toLocaleString()} đ</Text>
                   </View>
                   <View style={styles.orderRow}>
+                    <Text style={styles.orderLabel}>Thanh toán:</Text>
+                    <View style={[styles.paymentBadge, { 
+                      backgroundColor: order.paymentStatus === 'paid' ? '#E8F5E9' : 
+                                      order.paymentStatus === 'pending' ? '#FFF3E0' : '#FFEBEE' 
+                    }]}>
+                      <Text style={[styles.paymentText, { 
+                        color: order.paymentStatus === 'paid' ? '#4CAF50' : 
+                               order.paymentStatus === 'pending' ? '#FF9800' : '#F44336' 
+                      }]}>
+                        {order.paymentStatus === 'paid' ? 'Đã thanh toán' : 
+                         order.paymentStatus === 'pending' ? 'Chờ thanh toán' : 'Thất bại'}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.orderRow}>
                     <Text style={styles.orderLabel}>Ngày đặt:</Text>
                     <Text style={styles.orderValue}>
                       {new Date(order.createdAt).toLocaleDateString('vi-VN')}
@@ -491,5 +506,14 @@ const styles = StyleSheet.create({
     color: '#EF4444',
     fontSize: 15,
     fontWeight: 'bold',
+  },
+  paymentBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  paymentText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
 });
