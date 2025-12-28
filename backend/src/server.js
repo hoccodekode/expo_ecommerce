@@ -739,6 +739,84 @@ app.get('/api/payment/vnpay/return', async (req, res) => {
   }
 });
 
+// Helper function to create redirect HTML for deep linking
+function createRedirectHTML(deepLink) {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Đang chuyển hướng...</title>
+      <style>
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          min-height: 100vh;
+          margin: 0;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+        }
+        .container {
+          text-align: center;
+          padding: 2rem;
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 20px;
+          backdrop-filter: blur(10px);
+          max-width: 400px;
+        }
+        .spinner {
+          border: 4px solid rgba(255, 255, 255, 0.3);
+          border-radius: 50%;
+          border-top: 4px solid white;
+          width: 40px;
+          height: 40px;
+          animation: spin 1s linear infinite;
+          margin: 20px auto;
+        }
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        .message {
+          margin-top: 1rem;
+          font-size: 1.1rem;
+        }
+        .manual-link {
+          margin-top: 2rem;
+          padding: 12px 24px;
+          background: white;
+          color: #667eea;
+          text-decoration: none;
+          border-radius: 8px;
+          font-weight: bold;
+          display: inline-block;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="spinner"></div>
+        <div class="message">Đang quay về ứng dụng...</div>
+        <a href="${deepLink}" class="manual-link">Nhấn vào đây nếu không tự động chuyển</a>
+      </div>
+      <script>
+        // Try to open the app immediately
+        window.location.href = '${deepLink}';
+        
+        // Fallback: try again after a short delay
+        setTimeout(function() {
+          window.location.href = '${deepLink}';
+        }, 500);
+      </script>
+    </body>
+    </html>
+  `;
+}
+
 
 // --- PHỤC VỤ GIAO DIỆN ADMIN ---
 // Route cuối cùng để xử lý trang Admin (SPA)
