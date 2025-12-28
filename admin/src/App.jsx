@@ -13,6 +13,9 @@ import {
   Edit2,
   X,
 } from "lucide-react";
+import OrderDetailModal from "./OrderDetailModal";
+import UserDetailModal from "./UserDetailModal";
+
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const API_URL = `${BASE_URL}/api/products`;
@@ -902,9 +905,18 @@ useEffect(() => {
                           ? new Date(u.createdAt).toLocaleDateString("vi-VN")
                           : "N/A"}
                       </td>
-                      <td className="p-4 text-center">
-                        <button className="text-blue-500 hover:underline text-sm font-medium">
+                      <td className="p-4 text-center space-x-2">
+                        <button 
+                          onClick={() => setSelectedUser(u)}
+                          className="text-blue-500 hover:text-blue-700 hover:underline text-sm font-medium"
+                        >
                           Chi tiết
+                        </button>
+                        <button
+                          onClick={() => handleDeleteUser(u._id)}
+                          className="text-red-400 hover:text-red-600 p-2 rounded-full hover:bg-red-50 transition inline-flex"
+                        >
+                          <Trash2 size={16} />
                         </button>
                       </td>
                     </tr>
@@ -1081,6 +1093,17 @@ useEffect(() => {
           </div>
         )}
       </div>
+
+      {/* Modals */}
+      <OrderDetailModal 
+        order={selectedOrder} 
+        onClose={() => setSelectedOrder(null)} 
+      />
+      <UserDetailModal 
+        user={selectedUser} 
+        onClose={() => setSelectedUser(null)}
+        onDelete={handleDeleteUser}
+      />
     </div>
   );
 }
