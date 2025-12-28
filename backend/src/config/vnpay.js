@@ -53,14 +53,14 @@ export function createVNPayUrl(orderId, amount, orderInfo, ipAddr) {
   // Sort params
   vnp_Params = sortObject(vnp_Params);
 
-  // Create signature
-  const signData = querystring.stringify(vnp_Params, { encode: false });
+  // Create signature - VNPay requires URL encoded params for signature
+  const signData = querystring.stringify(vnp_Params, { encode: true });
   const hmac = crypto.createHmac('sha512', vnpayConfig.vnp_HashSecret);
   const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest('hex');
   vnp_Params['vnp_SecureHash'] = signed;
 
-  // Create payment URL
-  const paymentUrl = vnpayConfig.vnp_Url + '?' + querystring.stringify(vnp_Params, { encode: false });
+  // Create payment URL - use encoded params
+  const paymentUrl = vnpayConfig.vnp_Url + '?' + querystring.stringify(vnp_Params, { encode: true });
   
   return paymentUrl;
 }
@@ -77,7 +77,7 @@ export function verifyVNPaySignature(vnpParams) {
 
   // Sort params
   const sortedParams = sortObject(vnpParams);
-  const signData = querystring.stringify(sortedParams, { encode: false });
+  const signData = querystring.stringify(sortedParams, { encode: true });
   
   const hmac = crypto.createHmac('sha512', vnpayConfig.vnp_HashSecret);
   const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest('hex');

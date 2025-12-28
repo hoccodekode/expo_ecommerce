@@ -629,21 +629,41 @@ app.post('/api/payment/vnpay/create', async (req, res) => {
       return res.status(400).json({ message: 'Thiếu thông tin thanh toán' });
     }
 
-    // Get client IP
-    const ipAddr = req.headers['x-forwarded-for'] || 
-                   req.connection.remoteAddress || 
-                   req.socket.remoteAddress ||
-                   '127.0.0.1';
+    // Get client IP - handle IPv6 format
+    let ipAddr = req.headers['x-forwarded-for'] || 
+                 req.connection.remoteAddress || 
+                 req.socket.remoteAddress ||
+                 '127.0.0.1';
+    
+    // If IPv6, extract IPv4 or use default
+    if (ipAddr.includes('::ffff:')) {
+      ipAddr = ipAddr.split('::ffff:')[1];
+    } else if (ipAddr.includes(',')) {
+      ipAddr = ipAddr.split(',')[0].trim();
+    }
+    
+    // Ensure valid IPv4 format
+    if (!ipAddr.match(/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/)) {
+      ipAddr = '127.0.0.1';
+    }
+
+    console.log('📝 VNPay Payment Request:', {
+      orderId,
+      amount,
+      orderInfo,
+      ipAddr
+    });
 
     // Create payment URL
     const paymentUrl = createVNPayUrl(
       orderId,
       amount,
-      orderInfo || `Thanh toán đơn hàng ${orderId}`,
+      orderInfo || `Thanh toan don hang ${orderId}`,
       ipAddr
     );
 
     console.log('✅ Tạo VNPay URL thành công cho đơn hàng:', orderId);
+    console.log('🔗 Payment URL:', paymentUrl);
     res.status(200).json({ paymentUrl });
   } catch (error) {
     console.error('❌ Lỗi tạo VNPay URL:', error);
