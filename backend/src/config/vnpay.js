@@ -68,8 +68,8 @@ export function createVNPayUrl(orderId, amount, orderInfo, ipAddr) {
   for (const key in vnp_Params) {
     if (vnp_Params.hasOwnProperty(key)) {
       const value = vnp_Params[key];
-      // URL encode the value for signature
-      const encodedValue = encodeURIComponent(value);
+      // URL encode the value and replace %20 with + (VNPay standard)
+      const encodedValue = encodeURIComponent(value).replace(/%20/g, '+');
       signDataArray.push(`${key}=${encodedValue}`);
       console.log(`  ${key} = ${value} -> ${encodedValue}`);
     }
@@ -109,31 +109,40 @@ export function createVNPayUrl(orderId, amount, orderInfo, ipAddr) {
  */
 export function verifyVNPaySignature(vnpParams) {
   const secureHash = vnpParams['vnp_SecureHash'];
-  delete vnpParams['vnp_SecureHash'];
-  delete vnpParams['vnp_SecureHashType'];
+  
+  // Tạo bản sao để không làm ảnh hưởng đến object gốc
+  let data = { ...vnpParams };
+  
+  // Xóa các tham số không tham gia vào chuỗi ký
+  delete data['vnp_SecureHash'];
+  delete data['vnp_SecureHashType'];
 
-  // Sort params
-  const sortedParams = sortObject(vnpParams);
+  // 1. Sắp xếp tham số theo thứ tự alphabet (Quan trọng)
+  const sortedParams = sortObject(data);
   
-  // Create signature data - URL encode values
-  const signDataArray = [];
-  for (const key in sortedParams) {
-    if (sortedParams.hasOwnProperty(key)) {
-      const encodedValue = encodeURIComponent(sortedParams[key]);
-      signDataArray.push(`${key}=${encodedValue}`);
-    }
-  }
-  const signData = signDataArray.join('&');
+  // 2. Tạo chuỗi ký (Sign Data)
+  // Phải dùng đúng quy tắc encodeURIComponent + thay %20 thành +
+  const signData = Object.keys(sortedParams)
+    .map((key) => {
+      // Đảm bảo value không bị null/undefined và được encode đúng chuẩn
+      const value = encodeURIComponent(String(sortedParams[key])).replace(/%20/g, "+");
+      return `${key}=${value}`;
+    })
+    .join('&');
   
+  // 3. Tính toán chữ ký dựa trên Secret Key
   const hmac = crypto.createHmac('sha512', vnpayConfig.vnp_HashSecret);
   const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest('hex');
 
-  console.log('🔍 Verify - Sign Data:', signData);
-  console.log('🔐 Verify - Expected:', secureHash);
-  console.log('🔐 Verify - Calculated:', signed);
-  console.log('✅ Verify - Match:', secureHash === signed);
+  console.log('🔍 [Verify] Sign Data:', signData);
+  console.log('🔐 [Verify] VNPay gửi sang:', secureHash);
+  console.log('🔐 [Verify] Hệ thống tính:', signed);
 
-  return secureHash === signed;
+  // So sánh chữ ký (không phân biệt hoa thường để an toàn)
+  const isValid = secureHash.toLowerCase() === signed.toLowerCase();
+  console.log('✅ [Verify] Kết quả:', isValid ? 'HỢP LỆ' : 'SAI CHỮ KÝ');
+
+  return isValid;
 }
 
 /**
