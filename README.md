@@ -2,9 +2,13 @@
 
 Hệ thống thương mại điện tử đầy đủ tính năng với Mobile App (React Native/Expo), Admin Panel (React/Vite), và Backend API (Node.js/Express).
 
+![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
+
 ## 📋 Mục lục
 
 - [Tính năng](#-tính-năng)
+- [Demo & Screenshots](#-demo--screenshots)
 - [Công nghệ sử dụng](#-công-nghệ-sử-dụng)
 - [Cấu trúc dự án](#-cấu-trúc-dự-án)
 - [Cài đặt](#-cài-đặt)
@@ -12,70 +16,122 @@ Hệ thống thương mại điện tử đầy đủ tính năng với Mobile A
 - [Chạy dự án](#-chạy-dự-án)
 - [API Documentation](#-api-documentation)
 - [VNPay Integration](#-vnpay-integration)
+- [Admin Login](#-admin-login)
 - [Deployment](#-deployment)
 
 ## ✨ Tính năng
 
-### Mobile App (React Native/Expo)
+### 📱 Mobile App (React Native/Expo)
 - 🔐 **Xác thực người dùng** với Clerk
 - 🏠 **Trang chủ** với sản phẩm nổi bật và danh mục
-- 🔍 **Tìm kiếm & Lọc** sản phẩm
-- 🛒 **Giỏ hàng** với quản lý số lượng
+- 🔍 **Tìm kiếm & Lọc** sản phẩm theo tên, danh mục
+- 📦 **Chi tiết sản phẩm** với:
+  - Giá gốc, giá sale, % giảm giá
+  - Số lượng đã bán, tồn kho
+  - Size, màu sắc
+  - Đánh giá sao
+- 🛒 **Giỏ hàng** với:
+  - Quản lý số lượng
+  - Chọn size
+  - Tính tổng tiền tự động
 - 💳 **Thanh toán** đa phương thức:
-  - Tiền mặt (COD)
-  - VNPay (Cổng thanh toán điện tử)
-  - MoMo (Sẵn sàng tích hợp)
-  - Chuyển khoản ngân hàng
+  - 💵 Tiền mặt (COD)
+  - 💳 VNPay (Cổng thanh toán điện tử)
+  - 📱 MoMo (Sẵn sàng tích hợp)
+  - 🏦 Chuyển khoản ngân hàng
 - 🎫 **Mã giảm giá** với validation
-- 📦 **Lịch sử đơn hàng** với trạng thái chi tiết
-- 💰 **Trạng thái thanh toán**: Đã thanh toán / Chờ thanh toán / Thất bại
-- ❤️ **Danh sách yêu thích**
-- 👤 **Hồ sơ người dùng** với thống kê đơn hàng
+- 📦 **Lịch sử đơn hàng** với:
+  - Trạng thái đơn hàng (Chờ xử lý, Đang giao, Hoàn thành, Đã hủy)
+  - Trạng thái thanh toán (Đã thanh toán, Chờ thanh toán, Thất bại)
+  - Badge màu sắc trực quan
+- ❤️ **Danh sách yêu thích** với Zustand state management
+- 👤 **Hồ sơ người dùng** với:
+  - Thông tin cá nhân
+  - Thống kê đơn hàng
+  - Lịch sử mua hàng
 - 📍 **Quản lý địa chỉ giao hàng**
 
-### Admin Panel (React/Vite)
-- 📊 **Dashboard** với thống kê tổng quan:
-  - Tổng sản phẩm, đơn hàng, khách hàng
-  - Doanh thu
-  - Trạng thái đơn hàng
+### 💼 Admin Panel (React/Vite)
+- 🔐 **Authentication System**:
+  - Login page với validation
+  - Session persistence (localStorage)
+  - Logout functionality
+  - Default credentials: `admin@gmail.com` / `123456`
+
+- 📊 **Dashboard** với:
+  - 4 stat cards (Sản phẩm, Đơn hàng, Khách hàng, Doanh thu)
+  - 📊 **Bar Chart**: Thống kê đơn hàng theo trạng thái
+  - 🥧 **Pie Chart**: Trạng thái thanh toán
+  - 📈 **Line Chart**: Đơn hàng theo ngày (7 ngày gần nhất)
+  - Đơn hàng gần đây
+  - Order status summary
+  - Sản phẩm nổi bật
+
 - 📦 **Quản lý sản phẩm**:
   - Thêm/Sửa/Xóa sản phẩm
   - Upload ảnh qua Cloudinary
   - Quản lý giá gốc, giá giảm, tồn kho
   - Size, màu sắc, tags
+  - Số lượng đã bán
+  - Trạng thái active/inactive
+
 - 🛍️ **Quản lý đơn hàng**:
-  - Xem chi tiết đơn hàng (modal)
+  - Xem chi tiết đơn hàng (modal popup)
+  - Hiển thị: Thông tin khách, địa chỉ, sản phẩm, thanh toán
   - Cập nhật trạng thái đơn hàng
-  - Filter theo trạng thái thanh toán
+  - Filter theo trạng thái thanh toán (All, Paid, Pending, Failed)
   - Xóa đơn hàng
+  - Badge màu cho payment status
+
 - 👥 **Quản lý khách hàng**:
   - Xem danh sách khách hàng
-  - Chi tiết khách hàng (modal)
-  - Xóa khách hàng
+  - Chi tiết khách hàng (modal popup)
+  - Hiển thị: Avatar, email, ngày tham gia
+  - Xóa khách hàng (từ modal hoặc table)
 
-### Backend API (Node.js/Express)
-- 🔌 RESTful API
-- 🗄️ MongoDB với Mongoose
+### 🔧 Backend API (Node.js/Express)
+- 🔌 RESTful API architecture
+- 🗄️ MongoDB với Mongoose ODM
 - 📤 Upload ảnh lên Cloudinary
 - 💳 VNPay payment gateway integration
 - 🔐 Webhook handling cho Clerk
 - 🎫 Hệ thống mã giảm giá
 - 📊 Order management với payment status
+- ⏰ **Cron job** tự động ping health check mỗi 14 phút (prevent Render sleep)
+- 🏥 Health check endpoint
+
+## 🎨 Demo & Screenshots
+
+### Mobile App
+- Trang chủ với sản phẩm nổi bật
+- Chi tiết sản phẩm với giá sale
+- Giỏ hàng và checkout
+- VNPay payment flow
+- Profile với order history
+
+### Admin Panel
+- Login page
+- Dashboard với 3 biểu đồ thống kê
+- Quản lý sản phẩm
+- Order detail modal
+- User detail modal
 
 ## 🛠️ Công nghệ sử dụng
 
 ### Mobile App
-- **Framework**: React Native + Expo
+- **Framework**: React Native + Expo SDK 52
 - **Routing**: Expo Router (file-based routing)
 - **Authentication**: Clerk
 - **State Management**: Zustand
 - **Icons**: Ionicons
 - **HTTP Client**: Fetch API
+- **Deep Linking**: Expo Linking
 
 ### Admin Panel
 - **Framework**: React 18
 - **Build Tool**: Vite
 - **Styling**: Tailwind CSS
+- **Charts**: Recharts
 - **Icons**: Lucide React
 - **HTTP Client**: Fetch API
 
@@ -86,6 +142,7 @@ Hệ thống thương mại điện tử đầy đủ tính năng với Mobile A
 - **ODM**: Mongoose
 - **File Upload**: Multer + Cloudinary
 - **Payment**: VNPay API
+- **Cron Jobs**: node-cron
 - **Security**: CORS, dotenv
 
 ## 📁 Cấu trúc dự án
@@ -94,31 +151,36 @@ Hệ thống thương mại điện tử đầy đủ tính năng với Mobile A
 Expo-Ecommerce/
 ├── mobile/                 # React Native/Expo App
 │   ├── app/               # Expo Router pages
-│   │   ├── (auth)/       # Auth screens
-│   │   ├── (tabs)/       # Tab navigation
+│   │   ├── (auth)/       # Auth screens (sign-in, sign-up)
+│   │   ├── (tabs)/       # Tab navigation (home, search, cart, profile)
 │   │   ├── address/      # Address management
 │   │   ├── category/     # Category pages
-│   │   └── product/      # Product details
+│   │   ├── product/      # Product details
+│   │   └── payment-result.tsx
 │   ├── assets/           # Images, fonts
 │   └── app.json          # Expo config
 │
 ├── admin/                 # Admin Panel (Vite + React)
 │   ├── src/
-│   │   ├── App.jsx       # Main admin component
+│   │   ├── App.jsx       # Main admin component with login
 │   │   ├── OrderDetailModal.jsx
 │   │   └── UserDetailModal.jsx
 │   └── dist/             # Build output
 │
 ├── backend/               # Node.js Backend
-│   └── src/
-│       ├── models/       # Mongoose models
-│       │   ├── Product.js
-│       │   ├── Order.js
-│       │   ├── Cart.js
-│       │   └── DiscountCode.js
-│       ├── config/
-│       │   └── vnpay.js  # VNPay integration
-│       └── server.js     # Express app
+│   ├── src/
+│   │   ├── models/       # Mongoose models
+│   │   │   ├── Product.js
+│   │   │   ├── Order.js
+│   │   │   ├── Cart.js
+│   │   │   ├── User.js
+│   │   │   ├── Address.js
+│   │   │   └── DiscountCode.js
+│   │   ├── config/
+│   │   │   ├── cloudinary.js
+│   │   │   └── vnpay.js  # VNPay integration
+│   │   └── server.js     # Express app
+│   └── KEEP_ALIVE.md     # Cron job documentation
 │
 └── README.md
 ```
@@ -128,15 +190,15 @@ Expo-Ecommerce/
 ### Prerequisites
 - Node.js >= 18.x
 - MongoDB (local hoặc MongoDB Atlas)
-- Expo CLI
-- Clerk account
-- Cloudinary account
+- Expo CLI: `npm install -g expo-cli`
+- Clerk account (https://clerk.com)
+- Cloudinary account (https://cloudinary.com)
 - VNPay merchant account (cho payment)
 
 ### 1. Clone repository
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/hoccodekode/expo_ecommerce.git
 cd Expo-Ecommerce
 ```
 
@@ -176,6 +238,13 @@ CLOUDINARY_API_SECRET=your_api_secret
 # Clerk Webhook
 CLERK_WEBHOOK_SECRET=your_webhook_secret
 
+# VNPay (Optional - for payment)
+VNPAY_TMN_CODE=your_tmn_code
+VNPAY_HASH_SECRET=your_hash_secret
+
+# Render (for deployment)
+RENDER_EXTERNAL_URL=https://your-app.onrender.com
+
 # Server
 PORT=3000
 ```
@@ -187,7 +256,7 @@ Tạo file `admin/.env`:
 ```env
 VITE_API_BASE_URL=http://localhost:3000
 # Production:
-# VITE_API_BASE_URL=https://your-backend-url.com
+# VITE_API_BASE_URL=https://expo-ecommerce-wrd1.onrender.com
 ```
 
 ### Mobile (.env)
@@ -210,11 +279,13 @@ EXPO_PUBLIC_API_URL=http://localhost:3000
 cd backend
 npm run dev
 # Server chạy tại http://localhost:3000
+# Cron job tự động ping health check mỗi 14 phút
 
 # Terminal 2 - Admin
 cd admin
 npm run dev
 # Admin panel tại http://localhost:5173
+# Login: admin@gmail.com / 123456
 
 # Terminal 3 - Mobile
 cd mobile
@@ -286,12 +357,19 @@ POST   /api/upload                # Upload ảnh lên Cloudinary
 ```
 GET    /api/users                 # Lấy danh sách users
 DELETE /api/users/:id             # Xóa user
+POST   /api/webhooks/clerk        # Clerk webhook
 ```
 
 #### Discount Codes
 ```
 GET    /api/discount-codes        # Lấy tất cả mã giảm giá
 POST   /api/discount-codes/validate  # Validate mã giảm giá
+```
+
+#### Health Check
+```
+GET    /api/health                # Health check endpoint
+Response: { status: 'OK', timestamp: '...', uptime: 12345 }
 ```
 
 ## 💳 VNPay Integration
@@ -302,8 +380,8 @@ File `backend/src/config/vnpay.js`:
 
 ```javascript
 export const vnpayConfig = {
-  vnp_TmnCode: 'YOUR_TMN_CODE',
-  vnp_HashSecret: 'YOUR_HASH_SECRET',
+  vnp_TmnCode: 'X53UBDF2',
+  vnp_HashSecret: 'MBAGHBDGM6JFK0QCJQH0R55GAK9JKOOX',
   vnp_Url: 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html',
   vnp_ReturnUrl: 'https://your-backend.com/api/payment/vnpay/return'
 };
@@ -331,6 +409,26 @@ export const vnpayConfig = {
 - ✅ Timezone phải là UTC+7 (Asia/Ho_Chi_Minh)
 - ✅ Signature dùng HMAC-SHA512
 
+## 🔐 Admin Login
+
+### Default Credentials
+```
+Email: admin@gmail.com
+Password: 123456
+```
+
+### Features
+- ✅ Login page với gradient background
+- ✅ Session persistence với localStorage
+- ✅ Logout button trong sidebar
+- ✅ Form validation
+- ✅ Error handling
+
+### Security
+- Credentials được hardcode trong `App.jsx`
+- Session lưu trong localStorage
+- Tự động redirect về login khi chưa authenticate
+
 ## 🌐 Deployment
 
 ### Backend (Render)
@@ -338,10 +436,15 @@ export const vnpayConfig = {
 1. Push code lên GitHub
 2. Tạo Web Service trên Render
 3. Cấu hình:
-   - Build Command: `npm install --prefix backend && npm install --prefix admin && npm run build --prefix admin`
-   - Start Command: `node backend/src/server.js`
-4. Thêm Environment Variables
+   - **Build Command**: `npm install --prefix backend && npm install --prefix admin && npm run build --prefix admin`
+   - **Start Command**: `node backend/src/server.js`
+4. Thêm Environment Variables (xem phần Cấu hình)
 5. Deploy
+
+**Render Keep-Alive:**
+- Backend có cron job tự động ping `/api/health` mỗi 14 phút
+- Ngăn Render free tier sleep sau 15 phút
+- Xem `backend/KEEP_ALIVE.md` để biết thêm chi tiết
 
 ### Admin Panel
 
@@ -364,7 +467,14 @@ eas submit --platform ios
 ```javascript
 {
   clerkId: String,           // User ID từ Clerk
-  items: Array,              // Danh sách sản phẩm
+  items: [{
+    productId: String,
+    name: String,
+    price: Number,
+    quantity: Number,
+    size: String,
+    image: String
+  }],
   totalAmount: Number,       // Tổng tiền
   status: String,            // Chờ xử lý, Đang giao, Hoàn thành, Đã hủy
   address: String,           // Địa chỉ giao hàng
@@ -379,16 +489,23 @@ eas submit --platform ios
 
 ## 🎨 Features Highlights
 
+### Dashboard Charts (Admin)
+- **Bar Chart**: Thống kê đơn hàng theo trạng thái (Chờ xử lý, Đang giao, Hoàn thành, Đã hủy)
+- **Pie Chart**: Phân bổ trạng thái thanh toán (Paid, Pending, Failed)
+- **Line Chart**: Xu hướng đơn hàng 7 ngày gần nhất
+
 ### Payment Status Display
-- Mobile Profile: Badge màu cho trạng thái thanh toán
-- Admin Panel: Filter theo payment status + badge
+- **Mobile Profile**: Badge màu cho trạng thái thanh toán
+- **Admin Panel**: Filter theo payment status + badge màu
 
 ### Order Details Modal
 - Click vào mã đơn hàng để xem chi tiết
-- Hiển thị: Thông tin đơn, địa chỉ, thanh toán, sản phẩm
+- Hiển thị: Thông tin đơn, địa chỉ, thanh toán, danh sách sản phẩm
+- Responsive design
 
 ### User Management
 - Click "Chi tiết" để xem thông tin khách hàng
+- Modal hiển thị: Avatar, email, ngày tham gia
 - Xóa khách hàng trực tiếp từ modal hoặc table
 
 ## 🐛 Troubleshooting
@@ -406,19 +523,59 @@ eas submit --platform ios
 ### Admin không load được sản phẩm
 - Kiểm tra `VITE_API_BASE_URL` trong `admin/.env`
 - Verify CORS settings trong backend
+- Check network tab trong DevTools
+
+### Render Sleep Issue
+- Kiểm tra logs để xem cron job hoạt động
+- Verify `RENDER_EXTERNAL_URL` environment variable
+- Test health endpoint: `curl https://your-app.onrender.com/api/health`
+
+## 📊 Tech Stack Summary
+
+| Component | Technologies |
+|-----------|-------------|
+| **Mobile** | React Native, Expo, Clerk, Zustand, Expo Router |
+| **Admin** | React, Vite, Tailwind CSS, Recharts, Lucide Icons |
+| **Backend** | Node.js, Express, MongoDB, Mongoose, Cloudinary |
+| **Payment** | VNPay API |
+| **Deployment** | Render (Backend + Admin), EAS (Mobile) |
+| **Automation** | node-cron (Health checks) |
+
+## 🔄 Workflow
+
+1. **User browses products** → Mobile App
+2. **Add to cart** → Zustand state + Backend API
+3. **Checkout** → Create order + VNPay payment
+4. **Payment success** → Update order status
+5. **Admin manages** → Dashboard, Orders, Products, Users
+6. **Analytics** → Charts show trends and statistics
 
 ## 📄 License
 
-MIT
+MIT License - feel free to use this project for learning or commercial purposes.
 
 ## 👨‍💻 Author
 
-Developed with ❤️ by HocCode
+Developed with ❤️ by **HocCode**
 
 ## 🤝 Contributing
 
 Contributions, issues, and feature requests are welcome!
 
+1. Fork the project
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 🌟 Show your support
+
+Give a ⭐️ if this project helped you!
+
 ---
 
 **Happy Coding! 🚀**
+
+**Live Demo**: [https://expo-ecommerce-wrd1.onrender.com](https://expo-ecommerce-wrd1.onrender.com)
+
+**GitHub**: [https://github.com/hoccodekode/expo_ecommerce](https://github.com/hoccodekode/expo_ecommerce)
