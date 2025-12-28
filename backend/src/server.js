@@ -13,6 +13,7 @@ import Product from './models/Product.js';
 import Cart from './models/Cart.js';
 import Order from './models/Order.js';
 import Address from './models/Address.js';
+import cron from 'node-cron';
 const app = express();
 
 // --- KHAI BÁO ĐƯỜNG DẪN (Để fix lỗi ReferenceError) ---
@@ -805,6 +806,17 @@ function createRedirectHTML(message, isSuccess) {
 }
 
 
+// --- HEALTH CHECK ENDPOINT ---
+// Endpoint để giữ Render không bị sleep
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
+
+
 // --- PHỤC VỤ GIAO DIỆN ADMIN ---
 // Route cuối cùng để xử lý trang Admin (SPA)
 // Thay "/{*any}" bằng "*" để đúng chuẩn Express catch-all
@@ -824,3 +836,22 @@ mongoose.connect(process.env.MONGO_URI)
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+
+// --- CRON JOB: KEEP RENDER AWAKE ---
+// Chạy mỗi 14 phút để giữ Render không bị sleep
+cron.schedule('*/14 * * * *', async () => {
+  try {
+    const url = process.env.RENDER_EXTERNAL_URL 
+      ? `${process.env.RENDER_EXTERNAL_URL}/api/health`
+      : `http://localhost:${PORT}/api/health`;
+    
+    const response = await fetch(url);
+    const data = await response.json();
+    console.log(`🏓 Health check ping at ${new Date().toLocaleTimeString('vi-VN')} - Status: ${data.status}`);
+  } catch (error) {
+    console.error('❌ Health check failed:', error.message);
+  }
+});
+
+console.log('⏰ Cron job started: Health check every 14 minutes');
