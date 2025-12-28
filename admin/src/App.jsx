@@ -606,6 +606,67 @@ useEffect(() => {
               </div>
             </div>
 
+            {/* Line Chart - Orders by Day */}
+            <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 mb-8">
+              <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                <Package className="mr-2 text-blue-600" size={20} />
+                Đơn hàng theo ngày (7 ngày gần nhất)
+              </h2>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={(() => {
+                  // Tạo data cho 7 ngày gần nhất
+                  const days = [];
+                  const today = new Date();
+                  
+                  for (let i = 6; i >= 0; i--) {
+                    const date = new Date(today);
+                    date.setDate(date.getDate() - i);
+                    const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD
+                    
+                    // Đếm số đơn hàng trong ngày này
+                    const ordersCount = orders.filter(order => {
+                      const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
+                      return orderDate === dateStr;
+                    }).length;
+                    
+                    days.push({
+                      date: `${date.getDate()}/${date.getMonth() + 1}`,
+                      orders: ordersCount,
+                      fullDate: dateStr
+                    });
+                  }
+                  
+                  return days;
+                })()}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis 
+                    dataKey="date" 
+                    tick={{ fontSize: 12 }}
+                    label={{ value: 'Ngày', position: 'insideBottom', offset: -5, style: { fontSize: 12, fill: '#666' } }}
+                  />
+                  <YAxis 
+                    tick={{ fontSize: 12 }}
+                    label={{ value: 'Số đơn hàng', angle: -90, position: 'insideLeft', style: { fontSize: 12, fill: '#666' } }}
+                  />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
+                    labelStyle={{ fontWeight: 'bold' }}
+                    formatter={(value) => [`${value} đơn`, 'Số lượng']}
+                  />
+                  <Legend />
+                  <Line 
+                    type="monotone" 
+                    dataKey="orders" 
+                    stroke="#3b82f6" 
+                    strokeWidth={3}
+                    dot={{ fill: '#3b82f6', r: 5 }}
+                    activeDot={{ r: 7 }}
+                    name="Đơn hàng"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+
             {/* Top Products */}
             <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
               <div className="flex justify-between items-center mb-4">
