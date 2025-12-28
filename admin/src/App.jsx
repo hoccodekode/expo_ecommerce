@@ -32,6 +32,8 @@ export default function AdminPage() {
   // 2. Thêm State vào trong AdminPage()
   const [orders, setOrders] = useState([]);
   const [paymentFilter, setPaymentFilter] = useState('all'); // all, paid, pending, failed
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [selectedUser, setSelectedUser] = useState(null);
 
   // 3. Hàm lấy danh sách đơn hàng
   const fetchOrders = async () => {
@@ -117,6 +119,24 @@ export default function AdminPage() {
       console.error("Lỗi fetch users:", err);
     }
   };
+
+  // Hàm xóa người dùng
+  const handleDeleteUser = async (userId) => {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa khách hàng này?")) return;
+    try {
+      const res = await fetch(`${USERS_URL}/${userId}`, { method: "DELETE" });
+      if (res.ok) {
+        fetchUsers();
+        alert("Xóa khách hàng thành công!");
+      } else {
+        alert("Lỗi khi xóa khách hàng");
+      }
+    } catch (err) {
+      console.error("Lỗi khi xóa khách hàng:", err);
+      alert("Lỗi khi xóa khách hàng!");
+    }
+  };
+
 
 // Tìm và thay thế tất cả các useEffect cũ bằng khối duy nhất này:
 useEffect(() => {
@@ -976,9 +996,12 @@ useEffect(() => {
                       className="hover:bg-gray-50 transition-colors"
                     >
                       <td className="p-4">
-                        <div className="font-mono text-xs text-blue-600">
+                        <button 
+                          onClick={() => setSelectedOrder(order)}
+                          className="font-mono text-xs text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                        >
                           #{order._id.slice(-6).toUpperCase()}
-                        </div>
+                        </button>
                         <div className="text-xs text-gray-400">
                           {new Date(order.createdAt).toLocaleDateString(
                             "vi-VN"
